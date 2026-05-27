@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Value History{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-2xl font-bold text-white">Value History</h1>
+    <p class="text-sm text-gray-400 mt-1">Track how captured values change over time with charts</p>
+</div>
+
+<!-- Controls -->
+<div class="bg-surface-800 border border-white/5 rounded-xl p-5 mb-6">
+    <div class="flex flex-wrap items-end gap-4">
+        <div class="flex-1 min-w-[200px]">
+            <label class="text-xs text-gray-500 block mb-2">Metric Label</label>
+            <select id="history-label" class="w-full bg-surface-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-500/50">
+                <option value="">— Select metric —</option>
+                {% for label in labels %}
+                <option value="{{ label }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="text-xs text-gray-500 block mb-2">Site</label>
+            <select id="history-site" class="bg-surface-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-500/50">
+                <option value="">All Sites</option>
+                {% for site in sites %}
+                <option value="{{ site.name }}">{{ site.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="text-xs text-gray-500 block mb-2">Days</label>
+            <select id="history-days" class="bg-surface-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-500/50">
+                <option value="1">1 day</option>
+                <option value="7" selected>7 days</option>
+                <option value="14">14 days</option>
+                <option value="30">30 days</option>
+            </select>
+        </div>
+        <button
+            onclick="loadHistory()"
+            class="bg-brand-600 hover:bg-brand-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+            Load
+        </button>
+    </div>
+</div>
+
+<!-- Chart -->
+<div id="chart-container" class="bg-surface-800 border border-white/5 rounded-xl p-5 mb-6 hidden">
+    <canvas id="history-chart" height="300"></canvas>
+</div>
+
+<!-- Data Table -->
+<div id="history-table-container" class="bg-surface-800 border border-white/5 rounded-xl overflow-hidden hidden">
+    <div class="px-5 py-4 border-b border-white/5">
+        <h2 class="text-sm font-semibold text-white">Raw Values</h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-xs text-gray-500 uppercase tracking-wider border-b border-white/5">
+                    <th class="px-5 py-3 text-left">Site</th>
+                    <th class="px-5 py-3 text-left">Value</th>
+                    <th class="px-5 py-3 text-left">Captured At</th>
+                </tr>
+            </thead>
+            <tbody id="history-tbody" class="divide-y divide-white/5">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Empty state -->
+<div id="history-empty" class="bg-surface-800 border border-white/5 rounded-xl p-12 text-center">
+    <svg class="w-12 h-12 text-gray-700 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+    </svg>
+    <p class="text-gray-500 text-sm">Select a metric label and click Load to view history</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let historyChart = null;
+
+const CHART_COLORS = {
+    jhs81: { border: '#4f46e5', bg: 'rgba(79, 70, 229, 0.08)' },
+    jhs82: { border: '#059669', bg: 'rgba(5, 150, 105, 0.08)' },
+    jhs83: { border: '#db2777', bg: 'rgba(219, 39, 119, 0.08)' },
+    jhs84: { border: '#d97706', bg: 'rgba(217, 119, 6, 0.08)' },
+};
+
+async function loadHistory() {
+    const label = document.getElementById('history-label').value;
+    if (!label) { alert('Please select a metric'); return; }
+
+    const site = document.getElementById('history-site').value;
+    const days = document.getElementById('history-days').value;
+
+    let url = `/api/history?label=${encodeURIComponent(label)}&days=${days}`;
+    if (site) url += `&site=${encodeURIComponent(site)}`;
+
+    try {
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        if (data.error) { alert('Error: ' + data.error); return; }
+
+        document.getElementById('history-empty').classList.add('hidden');
+        document.getElementById('chart-container').classList.remove('hidden');
+        document.getElementById('history-table-container').classList.remove('hidden');
+
+        renderChart(label, data.data || []);
+        renderTable(data.data || []);
+
+    } catch (err) {
+        alert('Failed to load history: ' + err.message);
+    }
+}
+
+function renderChart(label, data) {
+    const ctx = document.getElementById('history-chart').getContext('2d');
+
+    // Group by site
+    const grouped = {};
+    data.forEach(d => {
+        if (!grouped[d.site]) grouped[d.site] = [];
+        grouped[d.site].push({ x: new Date(d.captured_at), y: parseFloat(d.value) || 0 });
+    });
+
+    const datasets = Object.entries(grouped).map(([site, points]) => ({
+        label: site,
+        data: points,
+        borderColor: (CHART_COLORS[site] || { border: '#94a3b8' }).border,
+        backgroundColor: (CHART_COLORS[site] || { bg: 'rgba(148, 163, 184, 0.1)' }).bg,
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.3,
+        fill: true,
+    }));
+
+    if (historyChart) historyChart.destroy();
+
+    historyChart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: { color: '#475569', font: { family: 'Inter', size: 12 } },
+                },
+                title: {
+                    display: true,
+                    text: `History: ${label}`,
+                    color: '#0f172a',
+                    font: { family: 'Inter', size: 14, weight: 600 },
+                },
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'day', displayFormats: { day: 'MMM d' } },
+                    grid: { color: '#e5e7eb' },
+                    ticks: { color: '#64748b', font: { family: 'Inter', size: 11 } },
+                },
+                y: {
+                    grid: { color: '#e5e7eb' },
+                    ticks: { color: '#64748b', font: { family: 'Inter', size: 11 } },
+                },
+            },
+        },
+    });
+}
+
+function renderTable(data) {
+    const tbody = document.getElementById('history-tbody');
+    tbody.innerHTML = data.map(d => `
+        <tr class="hover:bg-white/[.02] transition-colors">
+            <td class="px-5 py-3">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brand-500/10 text-brand-300">${d.site}</span>
+            </td>
+            <td class="px-5 py-3 text-white font-mono text-xs">${d.value}</td>
+            <td class="px-5 py-3 text-gray-500 text-xs">${new Date(d.captured_at).toLocaleString()}</td>
+        </tr>
+    `).join('');
+
+    if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="3" class="px-5 py-8 text-center text-gray-500 text-sm">No data found for this period.</td></tr>';
+    }
+}
+</script>
+<!-- Chart.js time adapter -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+{% endblock %}

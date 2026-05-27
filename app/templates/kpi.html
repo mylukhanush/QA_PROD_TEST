@@ -1,0 +1,902 @@
+{% extends "base.html" %}
+{% block title %}KPI Sheet{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <h1 class="text-2xl font-bold text-slate-900">KPI Sheet</h1>
+        <p class="text-sm text-gray-500 mt-1">Aggregated system health, execution reliability, and performance analytics</p>
+    </div>
+</div>
+
+<!-- Tab Navigation -->
+<div class="flex border-b border-slate-200 mb-6 gap-6">
+    <button id="tab-performance-kpi" onclick="switchTab('performance-kpi')" class="pb-3 text-sm font-bold text-brand-600 border-b-2 border-brand-600 focus:outline-none transition-all">
+        Performance KPI Sheet
+    </button>
+    <button id="tab-download-status" onclick="switchTab('download-status')" class="pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 border-b-2 border-transparent focus:outline-none transition-all">
+        KPI Download Sheet
+    </button>
+    <button id="tab-download-history" onclick="switchTab('download-history')" class="pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 border-b-2 border-transparent focus:outline-none transition-all">
+        Download History
+    </button>
+</div>
+
+<!-- Performance KPI Sheet Content -->
+<div id="content-performance-kpi">
+    <!-- Performance KPI Report Controls -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <label for="kpi-site-select" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Target Site:</label>
+            <select id="kpi-site-select" class="px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white shadow-sm">
+                <option value="jhs81">jhs81 (http://jhs81.assettl.com)</option>
+                <option value="jhs82">jhs82 (http://jhs82.assettl.com)</option>
+                <option value="jhs83">jhs83 (http://jhs83.assettl.com)</option>
+                <option value="jhs84" selected>jhs84 (http://jhs84.assettl.com)</option>
+            </select>
+            <button id="btn-generate-kpi" onclick="generateKpiReport()" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-brand-500/10 flex items-center gap-1.5">
+                <svg id="generate-spinner" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Generate KPI Report</span>
+            </button>
+        </div>
+        <div>
+            <a id="btn-download-kpi" href="#" class="px-5 py-2 border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed pointer-events-none text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download Excel Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Active Generating Progress Overlay/Card -->
+    <div id="kpi-progress-card" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-6 hidden">
+        <div class="flex justify-between items-center mb-3">
+            <div class="flex items-center gap-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse"></span>
+                <span id="kpi-status-text" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Generating Report...</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="kpi-percentage-text" class="text-xs font-bold text-brand-600">0%</span>
+                <button id="btn-cancel-kpi" onclick="cancelKpiReport()" class="px-2.5 py-1 text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-all flex items-center gap-1 shadow-sm">
+                    <svg class="w-3 h-3 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Cancel
+                </button>
+            </div>
+        </div>
+        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden shadow-inner">
+            <div id="kpi-progress-bar" class="bg-brand-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">
+            Playwright is executing sequential page crawling to measure performance loading times and verify record counts. This may take around 2-3 minutes.
+        </p>
+    </div>
+
+    <!-- Spreadsheet layout grid -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden p-6 mb-8">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse border border-slate-200 rounded-xl overflow-hidden">
+                <thead>
+                    <tr class="bg-[#3B4252] text-white">
+                        <th rowspan="2" class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[25%]">Category</th>
+                        <th rowspan="2" class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[40%]">Parameter</th>
+                        <th colspan="2" class="border border-slate-300 px-4 py-2 text-center text-xs font-bold uppercase tracking-wider w-[35%]">Small</th>
+                    </tr>
+                    <tr class="bg-[#3B4252] text-white">
+                        <th class="border border-slate-300 px-4 py-2.5 text-center text-xs font-semibold tracking-wide">Loading Time (Sec)</th>
+                        <th class="border border-slate-300 px-4 py-2.5 text-center text-xs font-semibold tracking-wide">Number of Records</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    <!-- Row 1: Login Page - OTP Generation -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td rowspan="2" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Login Page</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">OTP Generation</td>
+                        <td data-param="OTP Generation" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="OTP Generation" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+                    <!-- Row 2: Login Page - Login Status -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Login Status</td>
+                        <td data-param="Login Status" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-param="Login Status" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                    </tr>
+
+                    <!-- Row 3: Monitor > Command Centre - View all vehicle status... -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td rowspan="2" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Monitor > Command Centre</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">View all the vehicle status in Map view Page</td>
+                        <td data-param="View all the vehicle status in Map view Page" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="View all the vehicle status in Map view Page" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+                    <!-- Row 4: Monitor > Command Centre - View all vehicles in List view Page -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">View all the vehicle in List view Page</td>
+                        <td data-param="View all the vehicle in List view Page" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-param="View all the vehicle in List view Page" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                    </tr>
+
+                    <!-- Row 5: Monitor > Summary - Widget Loading -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td rowspan="1" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Monitor > Summary</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Widget Loading</td>
+                        <td data-param="Widget Loading" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="Widget Loading" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+
+                    <!-- Row 6: Monitor -> Video - View - Video Alerts(View) -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td rowspan="3" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Monitor -> Video - View</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Video Alerts(View)</td>
+                        <td data-param="Video Alerts(View)" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="Video Alerts(View)" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+                    <!-- Row 7: Monitor -> Video - View - Camers Status(View) -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Camers Status(View)</td>
+                        <td data-param="Camers Status(View)" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-param="Camers Status(View)" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                    </tr>
+                    <!-- Row 8: Monitor -> Video - View - Video Requests(View) -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Video Requests(View)</td>
+                        <td data-param="Video Requests(View)" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="Video Requests(View)" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+
+                    <!-- Row 9: Monitor > IgnitionTrips - History (View) -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td rowspan="2" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Monitor > IgnitionTrips</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">History (View)</td>
+                        <td data-param="History (View)" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="History (View)" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+                    <!-- Row 10: Monitor > IgnitionTrips - Logs (View) -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Logs (View)</td>
+                        <td data-param="Logs (View)" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-param="Logs (View)" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                    </tr>
+
+                    <!-- Row 11: Trips > Multipoint Cargo Trip - View All Ongoing Trip -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td rowspan="4" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Trips > Multipoint Cargo Trip</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">View All Ongoing Trip</td>
+                        <td data-param="View All Ongoing Trip" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="View All Ongoing Trip" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+                    <!-- Row 12: Trips > Multipoint Cargo Trip - View All Upcoming Trip -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">View All Upcoming Trip</td>
+                        <td data-param="View All Upcoming Trip" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-param="View All Upcoming Trip" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                    </tr>
+                    <!-- Row 13: Trips > Multipoint Cargo Trip - View All Completed/Cancel Trip -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">View All Completed/Cancel Trip</td>
+                        <td data-param="View All Completed/Cancel Trip" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="View All Completed/Cancel Trip" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+                    <!-- Row 14: Trips > Multipoint Cargo Trip - View Trip Summary Page -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">View Trip Summary Page</td>
+                        <td data-param="View Trip Summary Page" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-param="View Trip Summary Page" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                    </tr>
+
+                    <!-- Row 15: Reports- Alert (View report) - Alert-Geofence Entry Exit -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td rowspan="4" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Reports- Alert (View report)</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Alert-Geofence Entry Exit</td>
+                        <td data-param="Alert-Geofence Entry Exit" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="Alert-Geofence Entry Exit" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+                    <!-- Row 16: Reports- Alert (View report) - Alert-Ignation Status -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Alert-Ignation Status</td>
+                        <td data-param="Alert-Ignation Status" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-param="Alert-Ignation Status" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                    </tr>
+                    <!-- Row 17: Reports- Alert (View report) - Alert-Over Speed -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Alert-Over Speed</td>
+                        <td data-param="Alert-Over Speed" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="Alert-Over Speed" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+                    <!-- Row 18: Reports- Alert (View report) - Alert-Power Status -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Alert-Power Status</td>
+                        <td data-param="Alert-Power Status" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-param="Alert-Power Status" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                    </tr>
+
+                    <!-- Row 19: Other Reports (View Report) - Distance -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td rowspan="7" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Other Reports (View Report)</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Distance</td>
+                        <td data-param="Distance" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="Distance" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+                    <!-- Row 20: Other Reports (View Report) - IGN Master -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">IGN Master</td>
+                        <td data-param="IGN Master" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-param="IGN Master" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                    </tr>
+                    <!-- Row 21: Other Reports (View Report) - IGN Analytics -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">IGN Analytics</td>
+                        <td data-param="IGN Analytics" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="IGN Analytics" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+                    <!-- Row 22: Other Reports (View Report) - Geofence -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Geofence</td>
+                        <td data-param="Geofence" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-param="Geofence" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                    </tr>
+                    <!-- Row 23: Other Reports (View Report) - Over Speeding -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Over Speeding</td>
+                        <td data-param="Over Speeding" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="Over Speeding" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+                    <!-- Row 24: Other Reports (View Report) - Vehicle -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Vehicle</td>
+                        <td data-param="Vehicle" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-param="Vehicle" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                    </tr>
+                    <!-- Row 25: Other Reports (View Report) - IGN Trips -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">IGN Trips</td>
+                        <td data-param="IGN Trips" data-metric="loading" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-param="IGN Trips" data-metric="records" class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Download Status Content (Empty) -->
+<div id="content-download-status" class="hidden min-h-[300px]"></div>
+
+<!-- Download History Content -->
+<div id="content-download-history" class="hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden p-6 mb-8 fade-in">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Report Download History
+            </h2>
+            <button onclick="loadDownloadHistory()" class="px-3.5 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18" />
+                </svg>
+                Refresh Log
+            </button>
+        </div>
+
+        <!-- Active Filter Alert Badge -->
+        <div id="history-filter-badge" class="hidden mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl flex items-center justify-between text-xs font-semibold shadow-sm">
+            <div class="flex items-center gap-2">
+                <span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span>Active Filter: Showing only downloads for <span id="filtered-date-text" class="underline font-bold text-amber-900"></span></span>
+            </div>
+            <button onclick="clearHistoryDateFilter()" class="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg transition-all flex items-center gap-1 border border-amber-300">
+                <svg class="w-3.5 h-3.5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear Filter
+            </button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse border border-slate-100 rounded-xl overflow-hidden">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200/60 text-slate-600">
+                        <th class="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider">Date & Time</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider">Target Site</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider">Downloaded File Name</th>
+                        <th class="px-5 py-3.5 text-center text-xs font-bold uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="history-table-body" class="divide-y divide-slate-100 text-slate-700">
+                    <!-- History rows will be populated here -->
+                </tbody>
+            </table>
+            <div id="history-empty-state" class="hidden py-12 text-center text-slate-400">
+                <svg class="w-12 h-12 text-slate-200 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p class="text-xs font-medium">No download history recorded yet.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- KPI Report View Modal -->
+<div id="view-kpi-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200/80 rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col p-6 shadow-2xl overflow-hidden transform transition-all duration-300 scale-95 opacity-0" id="view-kpi-modal-container">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4 shrink-0">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span>KPI Performance Report Preview</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">Site: <span id="modal-view-site" class="font-bold text-brand-600"></span> &bull; Generated At: <span id="modal-view-date" class="font-semibold text-slate-700"></span></p>
+            </div>
+            <button onclick="closeViewKpiModal()" class="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-100">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Modal Table Body -->
+        <div class="flex-1 overflow-y-auto pr-1">
+            <table class="w-full text-xs border-collapse border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <thead>
+                    <tr class="bg-[#3B4252] text-white">
+                        <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[25%]">Category</th>
+                        <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[45%]">Parameter</th>
+                        <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[15%]">Loading Time (Sec)</th>
+                        <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[15%]">Number of Records</th>
+                    </tr>
+                </thead>
+                <tbody id="modal-kpi-tbody" class="divide-y divide-slate-200">
+                    <!-- populated dynamically via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="flex justify-end items-center gap-3 mt-6 pt-4 border-t border-slate-100 shrink-0">
+            <button onclick="closeViewKpiModal()" class="px-5 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-700 transition-all border border-transparent hover:bg-slate-50 rounded-xl">
+                Close Preview
+            </button>
+            <a id="modal-download-btn" href="#" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-emerald-500/10 transition-all active:scale-95 flex items-center gap-1.5 border border-emerald-500">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>Download Excel</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchTab(tabId) {
+    const tabKpi = document.getElementById('tab-performance-kpi');
+    const tabDownload = document.getElementById('tab-download-status');
+    const tabHistory = document.getElementById('tab-download-history');
+    
+    const contentKpi = document.getElementById('content-performance-kpi');
+    const contentDownload = document.getElementById('content-download-status');
+    const contentHistory = document.getElementById('content-download-history');
+    
+    // Reset all tabs
+    [tabKpi, tabDownload, tabHistory].forEach(tab => {
+        if (tab) {
+            tab.classList.remove('text-brand-600', 'border-brand-600', 'font-bold');
+            tab.classList.add('text-slate-500', 'border-transparent', 'font-semibold');
+        }
+    });
+    
+    // Hide all content
+    [contentKpi, contentDownload, contentHistory].forEach(content => {
+        if (content) content.classList.add('hidden');
+    });
+    
+    // Activate clicked tab
+    if (tabId === 'performance-kpi') {
+        tabKpi.classList.add('text-brand-600', 'border-brand-600', 'font-bold');
+        tabKpi.classList.remove('text-slate-500', 'border-transparent', 'font-semibold');
+        contentKpi.classList.remove('hidden');
+    } else if (tabId === 'download-status') {
+        tabDownload.classList.add('text-brand-600', 'border-brand-600', 'font-bold');
+        tabDownload.classList.remove('text-slate-500', 'border-transparent', 'font-semibold');
+        contentDownload.classList.remove('hidden');
+    } else if (tabId === 'download-history') {
+        tabHistory.classList.add('text-brand-600', 'border-brand-600', 'font-bold');
+        tabHistory.classList.remove('text-slate-500', 'border-transparent', 'font-semibold');
+        contentHistory.classList.remove('hidden');
+        loadDownloadHistory();
+    }
+}
+
+let activeHistoryDateFilter = null;
+
+function loadDownloadHistory() {
+    const tbody = document.getElementById('history-table-body');
+    const emptyState = document.getElementById('history-empty-state');
+    const filterBadge = document.getElementById('history-filter-badge');
+    const filteredDateText = document.getElementById('filtered-date-text');
+    
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="4" class="py-8 text-center text-slate-400">
+                <div class="flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-xs font-semibold text-slate-500">Loading download logs...</span>
+                </div>
+            </td>
+        </tr>
+    `;
+    emptyState.classList.add('hidden');
+    
+    if (activeHistoryDateFilter) {
+        filterBadge.classList.remove('hidden');
+        filteredDateText.textContent = activeHistoryDateFilter;
+    } else {
+        filterBadge.classList.add('hidden');
+    }
+    
+    fetch('/api/kpi/download-history')
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-rose-500 font-medium">Failed to load history: ${data.error}</td></tr>`;
+            return;
+        }
+        
+        let list = data.history || [];
+        
+        // Filter by date if active
+        if (activeHistoryDateFilter) {
+            list = list.filter(row => row.downloaded_at.startsWith(activeHistoryDateFilter));
+        }
+        
+        if (list.length === 0) {
+            tbody.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        list.forEach(row => {
+            const tr = document.createElement('tr');
+            if (activeHistoryDateFilter) {
+                tr.className = 'bg-amber-50/70 hover:bg-amber-100/60 transition-colors animate-pulse duration-1000';
+                setTimeout(() => {
+                    tr.classList.remove('animate-pulse');
+                }, 2000);
+            } else {
+                tr.className = 'hover:bg-slate-50/50 transition-colors';
+            }
+            
+            tr.innerHTML = `
+                <td class="px-5 py-3.5 font-mono text-xs text-slate-500 font-bold">${row.downloaded_at}</td>
+                <td class="px-5 py-3.5">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
+                        ${row.site_name}
+                    </span>
+                </td>
+                <td class="px-5 py-3.5 text-xs text-slate-700 font-semibold max-w-xs truncate" title="${row.filename}">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>${row.filename}</span>
+                    </div>
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                        <button onclick="viewReport('${row.run_id}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-brand-500 bg-brand-50 hover:bg-brand-500 hover:text-white text-brand-600 text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span>View</span>
+                        </button>
+                        <a href="/api/kpi/download/${row.run_id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-emerald-500 bg-emerald-50 hover:bg-emerald-500 hover:text-white text-emerald-600 text-xs font-bold rounded-xl transition-all shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            <span>Download</span>
+                        </a>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    })
+    .catch(err => {
+        console.error('History fetch error:', err);
+        tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-rose-500 font-medium">An error occurred while loading.</td></tr>`;
+    });
+}
+
+function clearHistoryDateFilter() {
+    activeHistoryDateFilter = null;
+    loadDownloadHistory();
+}
+
+function viewReport(runId) {
+    const modal = document.getElementById('view-kpi-modal');
+    const container = document.getElementById('view-kpi-modal-container');
+    const tbody = document.getElementById('modal-kpi-tbody');
+    
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="4" class="py-8 text-center text-slate-400">
+                <div class="flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-xs font-semibold text-slate-500">Loading spreadsheet data...</span>
+                </div>
+            </td>
+        </tr>
+    `;
+    
+    // Open modal backdrop immediately
+    modal.classList.remove('hidden');
+    
+    // Trigger transition scale in
+    setTimeout(() => {
+        container.classList.remove('scale-95', 'opacity-0');
+        container.classList.add('scale-100', 'opacity-100');
+    }, 10);
+    
+    fetch(`/api/kpi/details/${runId}`)
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-rose-500 font-semibold">Failed to load preview data.</td></tr>`;
+            return;
+        }
+        
+        document.getElementById('modal-view-site').textContent = data.site_name;
+        document.getElementById('modal-view-date').textContent = data.started_at;
+        document.getElementById('modal-download-btn').href = `/api/kpi/download/${runId}`;
+        
+        tbody.innerHTML = '';
+        
+        // Group by category to apply rowspan, similar to the main KPI table
+        const catCounts = {};
+        data.kpi_rows.forEach(row => {
+            catCounts[row.category] = (catCounts[row.category] || 0) + 1;
+        });
+        
+        const trackingCounts = {};
+        
+        data.kpi_rows.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition-colors';
+            
+            let catTd = '';
+            const cat = row.category;
+            if (!trackingCounts[cat]) {
+                trackingCounts[cat] = 0;
+            }
+            
+            if (trackingCounts[cat] === 0) {
+                // First row of category: render rowspan TD
+                catTd = `<td rowspan="${catCounts[cat]}" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3">${cat}</td>`;
+            }
+            trackingCounts[cat]++;
+            
+            let displayLt = row.loading_time;
+            if (displayLt === "" || displayLt === null || displayLt === undefined || displayLt === "None" || displayLt === "-") {
+                displayLt = "-";
+            }
+            
+            let displayRc = row.record_count;
+            if (displayRc === "" || displayRc === null || displayRc === undefined || displayRc === "None" || displayRc === "-") {
+                displayRc = "-";
+            } else if (displayRc === "0" || displayRc === 0) {
+                displayRc = "No Data";
+            }
+            
+            const isAltRow = trackingCounts[cat] % 2 === 0;
+            const rowBg = isAltRow ? 'bg-slate-50' : 'bg-white';
+            
+            tr.innerHTML = `
+                ${catTd}
+                <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 ${rowBg}">${row.parameter}</td>
+                <td class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 ${rowBg}">${displayLt}</td>
+                <td class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 ${rowBg}">${displayRc}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    })
+    .catch(err => {
+        console.error('Fetch detail error:', err);
+        tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-rose-500 font-semibold">An error occurred while fetching details.</td></tr>`;
+    });
+}
+
+function closeViewKpiModal() {
+    const modal = document.getElementById('view-kpi-modal');
+    const container = document.getElementById('view-kpi-modal-container');
+    
+    // Scale out first
+    container.classList.remove('scale-100', 'opacity-100');
+    container.classList.add('scale-95', 'opacity-0');
+    
+    // Hide backdrop after animation ends
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}
+
+
+
+let pollIntervalId = null;
+
+function generateKpiReport() {
+    const siteSelect = document.getElementById('kpi-site-select');
+    const siteName = siteSelect.value;
+    const generateBtn = document.getElementById('btn-generate-kpi');
+    const spinner = document.getElementById('generate-spinner');
+    const progressCard = document.getElementById('kpi-progress-card');
+    const progressBar = document.getElementById('kpi-progress-bar');
+    const percentageText = document.getElementById('kpi-percentage-text');
+    const statusText = document.getElementById('kpi-status-text');
+    const downloadBtn = document.getElementById('btn-download-kpi');
+    
+    // Reset table cells
+    document.querySelectorAll('[data-param]').forEach(cell => {
+        cell.textContent = '-';
+        cell.classList.remove('text-emerald-600');
+    });
+    
+    // Disable inputs
+    siteSelect.disabled = true;
+    generateBtn.disabled = true;
+    generateBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    spinner.classList.remove('hidden');
+    
+    // Reset and show progress card
+    progressCard.classList.remove('hidden');
+    progressBar.style.width = '0%';
+    percentageText.textContent = '0%';
+    statusText.textContent = 'Initializing KPI Run...';
+    
+    // Reset download button style and attributes
+    downloadBtn.removeAttribute('href');
+    downloadBtn.className = "px-5 py-2 border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed pointer-events-none text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm";
+    
+    fetch('/api/kpi/run', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ site_name: siteName })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error starting report: ' + data.error);
+            resetUiState();
+            return;
+        }
+        const runId = data.run_id;
+        localStorage.setItem('active_kpi_run_id', runId);
+        startPolling(runId);
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('Failed to trigger report generation.');
+        resetUiState();
+    });
+}
+
+function startPolling(runId) {
+    if (pollIntervalId) {
+        clearInterval(pollIntervalId);
+    }
+    
+    pollIntervalId = setInterval(() => {
+        fetch(`/api/kpi/progress/${runId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Progress error:', data.error);
+                clearInterval(pollIntervalId);
+                resetUiState();
+                return;
+            }
+            
+            // Update table values
+            const metrics = data.metrics || {};
+            for (const [key, val] of Object.entries(metrics)) {
+                let param = "";
+                let metricType = "";
+                if (key.endsWith(" - Loading Time")) {
+                    param = key.substring(0, key.length - " - Loading Time".length);
+                    metricType = "loading";
+                } else if (key.endsWith(" - Number of Records")) {
+                    param = key.substring(0, key.length - " - Number of Records".length);
+                    metricType = "records";
+                }
+                if (param && metricType) {
+                    const cell = document.querySelector(`[data-param="${param}"][data-metric="${metricType}"]`);
+                    if (cell) {
+                        let displayVal = val;
+                        if (displayVal === "" || displayVal === null || displayVal === undefined || displayVal === "None" || displayVal === "N/A" || displayVal === "-") {
+                            displayVal = "-";
+                        } else if (metricType === "records" && (displayVal === "0" || displayVal === 0)) {
+                            displayVal = "No Data";
+                        }
+                        if (cell.textContent !== displayVal) {
+                            cell.textContent = displayVal;
+                            if (!cell.classList.contains('text-emerald-600')) {
+                                cell.classList.add('text-emerald-600');
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Update progress bar
+            const completed = data.completed_steps || 0;
+            const total = data.total_steps || 25;
+            const percentage = Math.round((completed / total) * 100);
+            
+            const progressBar = document.getElementById('kpi-progress-bar');
+            const percentageText = document.getElementById('kpi-percentage-text');
+            const statusText = document.getElementById('kpi-status-text');
+            
+            progressBar.style.width = `${percentage}%`;
+            percentageText.textContent = `${percentage}%`;
+            statusText.textContent = `Generating Report... (${completed}/${total} parameters finished)`;
+            
+            if (data.status === 'completed' || data.status === 'pass' || data.status === 'fail' || data.status === 'error' || data.status === 'cancelled') {
+                clearInterval(pollIntervalId);
+                localStorage.removeItem('active_kpi_run_id');
+                
+                if (data.status === 'cancelled') {
+                    statusText.textContent = 'Report generation cancelled.';
+                    setTimeout(() => {
+                        const progressCard = document.getElementById('kpi-progress-card');
+                        progressCard.classList.add('hidden');
+                    }, 3000);
+                } else if (data.status === 'error') {
+                    statusText.textContent = 'Report generation failed.';
+                    alert('Playwright worker encountered a fatal error.');
+                } else {
+                    statusText.textContent = 'Report generated successfully!';
+                    
+                    // Enable download button
+                    const downloadBtn = document.getElementById('btn-download-kpi');
+                    downloadBtn.href = `/api/kpi/download/${runId}`;
+                    downloadBtn.className = "px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/10 flex items-center gap-1.5";
+                }
+                
+                resetUiState();
+            }
+        })
+        .catch(err => {
+            console.error('Polling fetch failed:', err);
+        });
+    }, 1500);
+}
+
+function cancelKpiReport() {
+    const runId = localStorage.getItem('active_kpi_run_id');
+    if (!runId) return;
+    
+    if (!confirm("Are you sure you want to cancel the active report generation?")) {
+        return;
+    }
+    
+    const cancelBtn = document.getElementById('btn-cancel-kpi');
+    cancelBtn.disabled = true;
+    cancelBtn.textContent = 'Cancelling...';
+    cancelBtn.className = "px-2.5 py-1 text-[10px] font-bold text-slate-400 bg-slate-50 rounded-lg border border-slate-200 cursor-not-allowed pointer-events-none";
+    
+    fetch(`/api/kpi/cancel/${runId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            clearInterval(pollIntervalId);
+            localStorage.removeItem('active_kpi_run_id');
+            
+            const statusText = document.getElementById('kpi-status-text');
+            statusText.textContent = 'Report generation cancelled by user.';
+            
+            setTimeout(() => {
+                const progressCard = document.getElementById('kpi-progress-card');
+                progressCard.classList.add('hidden');
+                resetUiState();
+            }, 3000);
+        } else {
+            alert('Failed to cancel generation.');
+            cancelBtn.disabled = false;
+            cancelBtn.innerHTML = `
+                <svg class="w-3 h-3 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel
+            `;
+            cancelBtn.className = "px-2.5 py-1 text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-all flex items-center gap-1 shadow-sm";
+        }
+    })
+    .catch(err => {
+        console.error('Cancel error:', err);
+        alert('An error occurred while attempting to cancel.');
+        cancelBtn.disabled = false;
+        cancelBtn.textContent = 'Cancel';
+    });
+}
+
+function resetUiState() {
+    const siteSelect = document.getElementById('kpi-site-select');
+    const generateBtn = document.getElementById('btn-generate-kpi');
+    const spinner = document.getElementById('generate-spinner');
+    
+    siteSelect.disabled = false;
+    generateBtn.disabled = false;
+    generateBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+    spinner.classList.add('hidden');
+    
+    // Reset cancel button
+    const cancelBtn = document.getElementById('btn-cancel-kpi');
+    if (cancelBtn) {
+        cancelBtn.disabled = false;
+        cancelBtn.innerHTML = `
+            <svg class="w-3 h-3 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cancel
+        `;
+        cancelBtn.className = "px-2.5 py-1 text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-all flex items-center gap-1 shadow-sm";
+    }
+}
+
+// On page load, check if there is an active run in progress or restore state
+document.addEventListener("DOMContentLoaded", () => {
+    // Check URL parameters for tab routing and date filtering
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    const dateParam = urlParams.get('date');
+    
+    if (tabParam) {
+        if (dateParam) {
+            activeHistoryDateFilter = dateParam;
+        }
+        switchTab(tabParam);
+    }
+
+    const activeRunId = localStorage.getItem('active_kpi_run_id');
+    if (activeRunId) {
+        const siteSelect = document.getElementById('kpi-site-select');
+        const generateBtn = document.getElementById('btn-generate-kpi');
+        const spinner = document.getElementById('generate-spinner');
+        const progressCard = document.getElementById('kpi-progress-card');
+        
+        siteSelect.disabled = true;
+        generateBtn.disabled = true;
+        generateBtn.classList.add('opacity-75', 'cursor-not-allowed');
+        spinner.classList.remove('hidden');
+        progressCard.classList.remove('hidden');
+        
+        startPolling(activeRunId);
+    }
+});
+</script>
+{% endblock %}

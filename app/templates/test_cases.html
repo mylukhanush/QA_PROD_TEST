@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% block title %}Test Cases{% endblock %}
+
+{% block content %}
+<!-- Add to Suite Modal -->
+<div id="assign-suite-modal"
+    class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+    <div class="bg-surface-800 border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl scale-in">
+        <h3 class="text-xl font-bold text-white mb-2">Assign to Existing Suite</h3>
+        <p id="assign-modal-tc-name" class="text-sm text-gray-500 mb-6 truncate"></p>
+
+        <input type="hidden" id="assign-modal-tc-id">
+        <input type="hidden" id="assign-modal-mode" value="single">
+        <div class="space-y-4">
+            <div id="assign-name-field">
+                <label class="text-[10px] uppercase tracking-wider font-bold text-gray-500 block mb-1.5 ml-1">Test Case Name</label>
+                <input id="assign-modal-tc-name-input" type="text"
+                    class="w-full bg-surface-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-brand-500 transition-all"
+                    placeholder="Enter a descriptive name...">
+            </div>
+            <div>
+                <label class="text-[10px] uppercase tracking-wider font-bold text-gray-500 block mb-1.5 ml-1">Select Suite</label>
+                <select id="assign-modal-suite-id"
+                    class="w-full bg-surface-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-brand-500 transition-all">
+                    <option value="">Choose an existing suite</option>
+                    {% for suite in suites %}
+                    <option value="{{ suite.id }}">{{ suite.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-8">
+            <button onclick="closeAssignSuiteModal()"
+                class="px-6 py-2.5 text-sm font-semibold text-gray-500 hover:text-white transition-colors">Cancel</button>
+            <button onclick="confirmAssignToSuite()"
+                class="bg-brand-600 hover:bg-brand-500 text-white px-8 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all active:scale-95">
+                Add to Suite
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="mb-8">
+    <div class="flex items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-white">Unassigned Test Cases</h1>
+            <p class="text-sm text-gray-400 mt-1">Only test cases that are not assigned to any test suite are shown here.</p>
+        </div>
+        <div class="px-4 py-2 rounded-xl bg-surface-800 border border-white/5 text-xs font-bold text-gray-400">
+            {{ test_cases|length }} Pending
+        </div>
+    </div>
+</div>
+
+{% if test_cases %}
+<div id="bulk-actions-bar" class="hidden mb-4 bg-surface-800 border border-white/5 rounded-2xl px-4 py-3">
+    <div class="flex flex-wrap items-center gap-2 justify-between">
+        <div class="text-sm text-gray-300">
+            <span id="selected-count">0</span> selected
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="selectAllTestCases()"
+                class="px-3 py-2 text-xs font-bold rounded-xl bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition-all">
+                Select All
+            </button>
+            <button onclick="clearSelectedTestCases()"
+                class="px-3 py-2 text-xs font-bold rounded-xl bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition-all">
+                Clear
+            </button>
+            <button onclick="openBulkAssignSuiteModal()"
+                class="px-3 py-2 text-xs font-bold rounded-xl bg-brand-600 hover:bg-brand-500 text-white transition-all shadow-sm">
+                Add Selected to Suite
+            </button>
+            <button onclick="deleteSelectedTestCases()"
+                class="px-3 py-2 text-xs font-bold rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500 hover:text-white transition-all">
+                Delete Selected
+            </button>
+        </div>
+    </div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    {% for tc in test_cases %}
+    <div class="bg-surface-800 border border-white/5 rounded-2xl p-6 hover:border-brand-500/30 transition-all" data-test-case-id="{{ tc.id }}">
+        <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+                <div class="text-lg font-bold text-white truncate">{{ tc.name or 'Unnamed Test Case' }}</div>
+                <div class="text-[10px] uppercase tracking-widest text-brand-300 mt-1">{{ tc.category }}</div>
+            </div>
+            <div class="flex items-start gap-3">
+                <div class="text-[11px] text-gray-500 whitespace-nowrap">
+                    {{ tc.created_at.strftime('%b %d, %H:%M') if tc.created_at else '' }}
+                </div>
+                <input
+                    type="checkbox"
+                    class="tc-select h-4 w-4 rounded border-white/20 bg-surface-900 text-brand-500 focus:ring-brand-500"
+                    value="{{ tc.id }}"
+                    onchange="updateBulkSelectionUi()"
+                    aria-label="Select test case">
+            </div>
+        </div>
+
+        <p class="text-sm text-gray-400 mt-4 min-h-[88px] leading-6">
+            {{ (tc.situation_description or 'No description provided')[:180] }}{% if tc.situation_description and tc.situation_description|length > 180 %}...{% endif %}
+        </p>
+
+        <div class="flex items-center justify-between gap-2 pt-4 mt-4 border-t border-white/5">
+            <button onclick="openTestCaseDetailsModal('{{ tc.id }}')"
+                class="px-3 py-2 text-xs font-bold rounded-xl bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition-all">
+                View Details
+            </button>
+            <div class="flex items-center gap-2">
+                <button
+                    data-tc-id="{{ tc.id }}"
+                    data-tc-name="{{ tc.name or 'Unnamed Test Case' }}"
+                    onclick="handleDeleteTestCase(this)"
+                    class="px-3 py-2 text-xs font-bold rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500 hover:text-white transition-all">
+                    Delete
+                </button>
+                <button
+                    data-tc-id="{{ tc.id }}"
+                    data-tc-name="{{ tc.name or tc.situation_description[:60] or 'Unnamed Test Case' }}"
+                    onclick="handleOpenAssignSuiteModal(this)"
+                    class="px-3 py-2 text-xs font-bold rounded-xl bg-brand-600 hover:bg-brand-500 text-white transition-all shadow-sm">
+                    Add to Suite
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="bg-surface-800 border border-white/5 rounded-2xl p-12 text-center">
+    <div class="text-lg font-bold text-white">No Unassigned Test Cases</div>
+    <div class="text-sm text-gray-500 mt-2">Every test case is already part of a suite.</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function getSelectedTestCaseIds() {
+        return Array.from(document.querySelectorAll('.tc-select:checked')).map(el => el.value);
+    }
+
+    function updateBulkSelectionUi() {
+        const selectedIds = getSelectedTestCaseIds();
+        const count = selectedIds.length;
+        const countEl = document.getElementById('selected-count');
+        const bar = document.getElementById('bulk-actions-bar');
+        if (countEl) countEl.innerText = String(count);
+        if (bar) {
+            if (count > 0) bar.classList.remove('hidden');
+            else bar.classList.add('hidden');
+        }
+    }
+
+    function selectAllTestCases() {
+        document.querySelectorAll('.tc-select').forEach(el => { el.checked = true; });
+        updateBulkSelectionUi();
+    }
+
+    function clearSelectedTestCases() {
+        document.querySelectorAll('.tc-select').forEach(el => { el.checked = false; });
+        updateBulkSelectionUi();
+    }
+
+    function handleOpenAssignSuiteModal(button) {
+        openAssignSuiteModal(
+            button.getAttribute('data-tc-id'),
+            button.getAttribute('data-tc-name') || 'Unnamed Test Case'
+        );
+    }
+
+    function handleDeleteTestCase(button) {
+        deleteTestCase(
+            button.getAttribute('data-tc-id'),
+            button.getAttribute('data-tc-name') || 'Unnamed Test Case'
+        );
+    }
+
+    function openAssignSuiteModal(tcId, tcName) {
+        document.getElementById('assign-modal-mode').value = 'single';
+        document.getElementById('assign-modal-tc-id').value = tcId;
+        document.getElementById('assign-modal-tc-name').innerText = tcName;
+        document.getElementById('assign-name-field').classList.remove('hidden');
+        document.getElementById('assign-modal-tc-name-input').value = tcName;
+        document.getElementById('assign-modal-suite-id').value = '';
+        document.getElementById('assign-suite-modal').classList.remove('hidden');
+    }
+
+    function openBulkAssignSuiteModal() {
+        const selectedIds = getSelectedTestCaseIds();
+        if (!selectedIds.length) {
+            alert('Please select at least one test case');
+            return;
+        }
+
+        document.getElementById('assign-modal-mode').value = 'bulk';
+        document.getElementById('assign-modal-tc-id').value = '';
+        document.getElementById('assign-modal-tc-name').innerText = `${selectedIds.length} test case(s) selected`;
+        document.getElementById('assign-name-field').classList.add('hidden');
+        document.getElementById('assign-modal-tc-name-input').value = '';
+        document.getElementById('assign-modal-suite-id').value = '';
+        document.getElementById('assign-suite-modal').classList.remove('hidden');
+    }
+
+    function closeAssignSuiteModal() {
+        document.getElementById('assign-suite-modal').classList.add('hidden');
+    }
+
+    async function confirmAssignToSuite() {
+        const mode = document.getElementById('assign-modal-mode').value;
+        const tcId = document.getElementById('assign-modal-tc-id').value;
+        const tcName = document.getElementById('assign-modal-tc-name-input').value.trim();
+        const suiteId = document.getElementById('assign-modal-suite-id').value;
+
+        if (!suiteId) {
+            alert('Please choose an existing suite');
+            return;
+        }
+
+        if (mode === 'bulk') {
+            const selectedIds = getSelectedTestCaseIds();
+            if (!selectedIds.length) {
+                alert('Please select at least one test case');
+                return;
+            }
+
+            try {
+                const resp = await fetch('/api/test-cases/bulk-save-to-suite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test_case_ids: selectedIds, suite_id: suiteId })
+                });
+
+                if (!resp.ok) {
+                    const data = await resp.json();
+                    alert(data.error || 'Failed to assign selected test cases to suite');
+                    return;
+                }
+
+                location.reload();
+            } catch (err) {
+                alert('Failed to assign selected test cases: ' + err.message);
+            }
+            return;
+        }
+
+        if (!tcId) {
+            alert('Test case ID is missing');
+            return;
+        }
+        if (!tcName) {
+            alert('Please enter a test case name');
+            return;
+        }
+
+        try {
+            const resp = await fetch(`/api/test-cases/${tcId}/save-to-suite`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: tcName, suite_id: suiteId })
+            });
+
+            if (!resp.ok) {
+                const data = await resp.json();
+                alert(data.error || 'Failed to assign test case to suite');
+                return;
+            }
+
+            location.reload();
+        } catch (err) {
+            alert('Failed to assign test case: ' + err.message);
+        }
+    }
+
+    async function deleteTestCase(tcId, tcName) {
+        if (!confirm(`Delete test case "${tcName}"? This will also remove its saved runs.`)) return;
+
+        try {
+            const resp = await fetch(`/api/test-cases/${tcId}`, { method: 'DELETE' });
+            const data = await resp.json();
+            if (!resp.ok) {
+                alert(data.error || 'Failed to delete test case');
+                return;
+            }
+            location.reload();
+        } catch (err) {
+            alert('Failed to delete test case: ' + err.message);
+        }
+    }
+
+    async function deleteSelectedTestCases() {
+        const selectedIds = getSelectedTestCaseIds();
+        if (!selectedIds.length) {
+            alert('Please select at least one test case');
+            return;
+        }
+
+        if (!confirm(`Delete ${selectedIds.length} selected test case(s)? This will also remove their saved runs.`)) return;
+
+        try {
+            const resp = await fetch('/api/test-cases/bulk-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ test_case_ids: selectedIds })
+            });
+            const data = await resp.json();
+            if (!resp.ok) {
+                alert(data.error || 'Failed to delete selected test cases');
+                return;
+            }
+            location.reload();
+        } catch (err) {
+            alert('Failed to delete selected test cases: ' + err.message);
+        }
+    }
+</script>
+{% endblock %}

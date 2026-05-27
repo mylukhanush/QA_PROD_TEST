@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="mb-8">
+    <h1 class="text-2xl font-bold text-white">Dashboard</h1>
+    <p class="text-sm text-gray-400 mt-1">Overview of all sites, recent runs, and quick stats</p>
+</div>
+
+<!-- Site Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+    {% for site in sites %}
+    <div class="group relative bg-surface-800 border border-white/5 rounded-xl p-5 hover:border-brand-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-brand-500/5">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full {% if site.is_active %}bg-emerald-400 animate-pulse{% else %}bg-gray-600{% endif %}"></div>
+                <h3 class="text-sm font-semibold text-white uppercase tracking-wide">{{ site.name }}</h3>
+            </div>
+            <span class="text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">
+                {% set last_run = site.test_runs.order_by(None).first() %}
+                {% if last_run %}
+                    {% if last_run.status == 'pass' %}
+                        <span class="text-emerald-400">● Pass</span>
+                    {% elif last_run.status == 'fail' %}
+                        <span class="text-red-400">● Fail</span>
+                    {% elif last_run.status == 'running' %}
+                        <span class="text-blue-400">● Running</span>
+                    {% else %}
+                        <span class="text-yellow-400">● {{ last_run.status }}</span>
+                    {% endif %}
+                {% else %}
+                    <span class="text-gray-500">No runs</span>
+                {% endif %}
+            </span>
+        </div>
+        <p class="text-xs text-gray-500 truncate">{{ site.base_url }}</p>
+        <div class="mt-3 flex items-center justify-between text-xs">
+            <span class="text-gray-500">
+                {% set run_count = site.test_runs.count() %}
+                {{ run_count }} run{{ 's' if run_count != 1 }}
+            </span>
+            <a href="/runs?site={{ site.name }}" class="text-brand-400 hover:text-brand-300 transition-colors">View runs →</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Daily Execution Summary -->
+<div class="bg-surface-800 border border-white/5 rounded-2xl overflow-hidden shadow-sm">
+    <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Daily Execution Summary</h2>
+        <a href="/runs" class="text-xs text-brand-400 hover:underline font-bold">View History</a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-xs text-gray-500 uppercase tracking-wider border-b border-white/5 bg-white/[0.01]">
+                    <th class="px-6 py-4 text-left">Date</th>
+                    <th class="px-6 py-4 text-left">Total Runs</th>
+                    <th class="px-6 py-4 text-left">Pass</th>
+                    <th class="px-6 py-4 text-left">Fail</th>
+                    <th class="px-6 py-4 text-left">Error</th>
+                    <th class="px-6 py-4 text-left">Running</th>
+                    <th class="px-6 py-4 text-left">Downloads</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {% for row in daily_execution_summary %}
+                <tr class="hover:bg-white/[.02] transition-colors group">
+                    <td class="px-6 py-4 text-gray-200 font-medium">{{ row.date.strftime('%b %d, %Y') }}</td>
+                    <td class="px-6 py-4 text-brand-300 font-bold">
+                        {% if row.total > 0 %}
+                        <a href="/runs?date={{ row.date.strftime('%Y-%m-%d') }}" class="hover:underline" title="View all runs for this day">
+                            {{ row.total }}
+                        </a>
+                        {% else %}
+                        0
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-emerald-400 font-bold">
+                        {% if row.pass > 0 %}
+                        <a href="/runs?date={{ row.date.strftime('%Y-%m-%d') }}&status=pass" class="hover:underline" title="View passed runs for this day">
+                            {{ row.pass }}
+                        </a>
+                        {% else %}
+                        0
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-amber-400 font-bold">
+                        {% if row.fail > 0 %}
+                        <a href="/runs?date={{ row.date.strftime('%Y-%m-%d') }}&status=fail" class="hover:underline" title="View failed runs for this day">
+                            {{ row.fail }}
+                        </a>
+                        {% else %}
+                        0
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-red-400 font-bold">
+                        {% if row.error > 0 %}
+                        <a href="/runs?date={{ row.date.strftime('%Y-%m-%d') }}&status=error" class="hover:underline" title="View errored runs for this day">
+                            {{ row.error }}
+                        </a>
+                        {% else %}
+                        0
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-blue-400 font-bold">
+                        {% if row.running > 0 %}
+                        <a href="/runs?date={{ row.date.strftime('%Y-%m-%d') }}&status=running" class="hover:underline" title="View active runs for this day">
+                            {{ row.running }}
+                        </a>
+                        {% else %}
+                        0
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if row.downloads > 0 %}
+                        <a href="/kpi?tab=download-history&date={{ row.date.strftime('%Y-%m-%d') }}" class="text-indigo-400 font-bold hover:underline" title="Click to view downloads for {{ row.date.strftime('%b %d, %Y') }}">
+                            {{ row.downloads }}
+                        </a>
+                        {% else %}
+                        <span class="text-gray-600 font-semibold">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not daily_execution_summary %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-gray-500 italic">No execution data found for the last 30 days.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JHS Portal Verification | QA Agent</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+        }
+
+        .glow-sphere {
+            filter: blur(140px);
+            opacity: 0.6;
+            mix-blend-mode: multiply;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="h-full overflow-hidden relative text-slate-800 bg-[#f8fafc]">
+    <!-- Glowing background blobs (Pastel Light Accents) -->
+    <div class="absolute w-[600px] h-[600px] rounded-full bg-brand-500/10 top-[-10%] left-[-10%] glow-sphere"></div>
+    <div class="absolute w-[600px] h-[600px] rounded-full bg-pink-500/5 bottom-[-10%] right-[-10%] glow-sphere"></div>
+    <div class="absolute w-[500px] h-[500px] rounded-full bg-indigo-500/10 top-[40%] left-[40%] glow-sphere"></div>
+
+    <!-- Main Grid Split Shell -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 h-full w-full min-h-screen relative z-10">
+
+        <!-- Left Column: Branding Section -->
+        <div class="lg:col-span-5 flex flex-col justify-center items-center p-8 select-none">
+            <div class="flex flex-col items-center max-w-md text-center">
+                <!-- Large Elegant Lock Check Logo -->
+                <div
+                    class="w-24 h-24 rounded-3xl bg-gradient-to-tr from-indigo-600 to-pink-500 flex items-center justify-center shadow-2xl shadow-indigo-500/20 mb-8 border border-white/20">
+                    <svg class="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+
+                <!-- Title & Subtitle -->
+                <h1 class="text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-3 text-center">
+                    JHS Portal
+                </h1>
+                <p class="text-sm font-semibold tracking-[0.25em] text-brand-600 uppercase text-center">
+                    Portal Authentication
+                </p>
+                <div class="w-16 h-1 bg-gradient-to-r from-brand-500 to-pink-500 rounded-full mt-6 mx-auto"></div>
+            </div>
+        </div>
+
+        <!-- Right Column: Glassmorphic Sign In form -->
+        <div class="lg:col-span-7 flex items-center justify-center p-6">
+            <div class="w-full max-w-[450px]">
+
+                <!-- Glass Card -->
+                <div
+                    class="bg-white/80 backdrop-blur-2xl border border-slate-200/80 p-8 lg:p-10 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+                    <div class="relative z-10">
+                        <h2 class="text-2xl font-bold text-slate-900 mb-2">JHS Website Login</h2>
+                        <p class="text-sm text-slate-500 mb-8">Enter correct credentials for JHS website. All operations will lock to this mail ID.</p>
+
+                        <div id="error-container"
+                            class="{% if not error %}hidden{% endif %} mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 flex gap-3 text-rose-800 text-sm">
+                            <svg class="w-5 h-5 shrink-0 text-rose-600" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <span id="error-text">{{ error or '' }}</span>
+                        </div>
+
+                        <form action="/login-jhs" method="POST" id="loginForm" class="space-y-6" onsubmit="handleSubmit(event)">
+                            <input type="hidden" name="action" id="actionInput" value="{% if otp_sent %}verify_otp{% else %}send_otp{% endif %}">
+
+                            <!-- Stage 1: Credentials Input Stage -->
+                            <div id="credentials-stage" class="space-y-6 transition-all duration-500 ease-in-out {% if otp_sent %}opacity-40 max-h-0 pointer-events-none mt-[-1.5rem]{% else %}opacity-100 max-h-[400px]{% endif %} overflow-hidden">
+                                <!-- Email -->
+                                <div>
+                                    <label for="username"
+                                        class="block text-xs uppercase tracking-wider font-semibold text-slate-500 mb-2">JHS Email (Mail ID)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-0 pl-4 flex items-center text-slate-400">
+                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                            </svg>
+                                        </span>
+                                        <input type="email" id="username" name="username" value="{{ username or '' }}" required autocomplete="email"
+                                            placeholder="ranjit@assettl.com"
+                                            class="w-full bg-slate-50/50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
+                                    </div>
+                                </div>
+
+                                <!-- Password with Eye Toggle -->
+                                <div>
+                                    <label for="password"
+                                        class="block text-xs uppercase tracking-wider font-semibold text-slate-500 mb-2">JHS Password</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-0 pl-4 flex items-center text-slate-400">
+                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                            </svg>
+                                        </span>
+                                        <input type="password" id="password" name="password" required
+                                            placeholder="Enter password"
+                                            class="w-full bg-slate-50/50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-12 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
+                                        <!-- Eye icon toggle button -->
+                                        <button type="button" onclick="togglePassword()" id="eye-toggle"
+                                            class="absolute right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors focus:outline-none">
+                                            <span id="eye-icon">
+                                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                    stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Stage 2: OTP Verification Stage -->
+                            <div id="otp-stage" class="space-y-4 overflow-hidden transition-all duration-700 ease-in-out {% if otp_sent %}max-h-[400px] opacity-100 mt-4{% else %}max-h-0 opacity-0{% endif %}">
+                                <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex gap-3 text-emerald-800 text-sm">
+                                    <svg class="w-5 h-5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>OTP verification code has been triggered. Please check your mailbox.</span>
+                                </div>
+                                
+                                <div>
+                                    <label for="otp_code" class="block text-xs uppercase tracking-wider font-semibold text-slate-500 mb-2">Enter JHS OTP Code</label>
+                                    <div class="relative">
+                                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                            </svg>
+                                        </span>
+                                        <input type="text" id="otp_code" name="otp_code" placeholder="Enter OTP" maxlength="6"
+                                            class="w-full bg-slate-50/50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all tracking-[0.2em] text-center font-bold text-lg">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Submit button and loading state container -->
+                            <div class="pt-2">
+                                <button type="submit" id="submitBtn"
+                                    class="w-full py-4 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-brand-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                                    <span id="submitBtnText">{% if otp_sent %}Verify OTP & Login{% else %}Send OTP & Continue{% endif %}</span>
+                                </button>
+                                <div id="back-to-credentials" class="mt-4 text-center {% if not otp_sent %}hidden{% endif %}">
+                                    <button type="button" onclick="resetToCredentials()" class="text-xs text-brand-600 hover:text-brand-700 font-semibold transition-colors focus:outline-none">← Back to Login Credentials</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Script to toggle password and display loading status -->
+    <script>
+        function togglePassword() {
+            const pwd = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon');
+            if (pwd && pwd.type === 'password') {
+                pwd.type = 'text';
+                eyeIcon.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                    </svg>
+                `;
+            } else if (pwd) {
+                pwd.type = 'password';
+                eyeIcon.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                `;
+            }
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+
+            const actionInput = document.getElementById('actionInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const credentialsStage = document.getElementById('credentials-stage');
+            const otpStage = document.getElementById('otp-stage');
+            const errorContainer = document.getElementById('error-container');
+            const errorText = document.getElementById('error-text');
+            const backToCredentials = document.getElementById('back-to-credentials');
+
+            const action = actionInput.value;
+            const username = document.getElementById('username') ? document.getElementById('username').value : '';
+            const password = document.getElementById('password') ? document.getElementById('password').value : '';
+            const otpCode = document.getElementById('otp_code') ? document.getElementById('otp_code').value : '';
+
+            // Hide past error
+            if (errorContainer) {
+                errorContainer.classList.add('hidden');
+            }
+
+            if (action === 'send_otp') {
+                // SLIDE DOWN OTP STAGE IMMEDIATELY (INSTANT RESPONSE!)
+                actionInput.value = 'verify_otp';
+
+                // Disable credential fields
+                if (document.getElementById('username')) document.getElementById('username').disabled = true;
+                if (document.getElementById('password')) document.getElementById('password').disabled = true;
+
+                // Slide Out Credentials Stage
+                credentialsStage.classList.remove('opacity-100', 'max-h-[400px]');
+                credentialsStage.classList.add('opacity-40', 'max-h-0', 'pointer-events-none', 'mt-[-1.5rem]');
+
+                // Slide Down OTP Stage
+                otpStage.classList.remove('max-h-0', 'opacity-0');
+                otpStage.classList.add('max-h-[400px]', 'opacity-100', 'mt-4');
+
+                // Update the instruction banner inside OTP stage to show "connecting" state
+                const otpBanner = otpStage.querySelector('div');
+                if (otpBanner) {
+                    otpBanner.className = "p-4 rounded-2xl bg-brand-50 border border-brand-100 flex gap-3 text-brand-800 text-sm transition-all";
+                    otpBanner.innerHTML = `
+                        <svg class="animate-spin h-5 w-5 text-brand-600 shrink-0" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Connecting to JHS portal to request your security OTP...</span>
+                    `;
+                }
+
+                // Show Back navigation option
+                if (backToCredentials) backToCredentials.classList.remove('hidden');
+
+                // Disable submit button during active background dispatch
+                submitBtn.disabled = true;
+                submitBtn.classList.remove('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
+                submitBtn.classList.add('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+                submitBtn.innerHTML = `
+                    <svg class="animate-spin h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Requesting JHS OTP...</span>
+                `;
+
+                // Autofocus OTP code input
+                setTimeout(() => {
+                    const otpInput = document.getElementById('otp_code');
+                    if (otpInput) otpInput.focus();
+                }, 400);
+
+                try {
+                    const response = await fetch('/login-jhs', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: new URLSearchParams({
+                            action: 'send_otp',
+                            username: username,
+                            password: password
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // OTP generated successfully! Enable the input and submit button
+                        if (otpBanner) {
+                            otpBanner.className = "p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex gap-3 text-emerald-800 text-sm transition-all";
+                            otpBanner.innerHTML = `
+                                <svg class="w-5 h-5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>OTP verification code successfully dispatched! Check your mailbox.</span>
+                            `;
+                        }
+
+                        submitBtn.disabled = false;
+                        submitBtn.classList.add('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
+                        submitBtn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+                        submitBtn.innerHTML = '<span>Verify OTP & Login</span>';
+                    } else {
+                        // Background dispatch failed. Revert to Credentials view
+                        resetToCredentials();
+                        showError(result.error || 'Could not connect to JHS. Please check credentials.');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    resetToCredentials();
+                    showError('Network error. JHS portal unreachable.');
+                }
+            } else if (action === 'verify_otp') {
+                // Standard OTP submission path
+                if (!otpCode) {
+                    showError('Please enter the OTP code.');
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.classList.remove('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
+                submitBtn.classList.add('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+                submitBtn.innerHTML = `
+                    <svg class="animate-spin h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Verifying OTP with JHS...</span>
+                `;
+
+                try {
+                    const response = await fetch('/login-jhs', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: new URLSearchParams({
+                            action: 'verify_otp',
+                            otp_code: otpCode
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success && result.redirect) {
+                        window.location.href = result.redirect;
+                    } else {
+                        // Reset button state so they can retry typing!
+                        submitBtn.disabled = false;
+                        submitBtn.classList.add('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
+                        submitBtn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+                        submitBtn.innerHTML = '<span>Verify OTP & Login</span>';
+
+                        // OTP incorrect
+                        showError(result.error || 'Incorrect OTP code.');
+                        if (result.expired) {
+                            resetToCredentials();
+                        }
+                    }
+                } catch (err) {
+                    console.error(err);
+                    submitBtn.disabled = false;
+                    submitBtn.classList.add('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
+                    submitBtn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+                    submitBtn.innerHTML = '<span>Verify OTP & Login</span>';
+                    showError('Connection error. Failed to verify OTP.');
+                }
+            }
+        }
+
+        function resetToCredentials() {
+            const actionInput = document.getElementById('actionInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const credentialsStage = document.getElementById('credentials-stage');
+            const otpStage = document.getElementById('otp-stage');
+            const backToCredentials = document.getElementById('back-to-credentials');
+            const errorContainer = document.getElementById('error-container');
+
+            actionInput.value = 'send_otp';
+
+            if (document.getElementById('username')) document.getElementById('username').disabled = false;
+            if (document.getElementById('password')) document.getElementById('password').disabled = false;
+
+            // Clear any OTP value entered
+            if (document.getElementById('otp_code')) document.getElementById('otp_code').value = '';
+
+            // Slide In Credentials Stage
+            credentialsStage.classList.remove('opacity-40', 'max-h-0', 'pointer-events-none', 'mt-[-1.5rem]');
+            credentialsStage.classList.add('opacity-100', 'max-h-[400px]');
+
+            // Slide Out OTP Stage
+            otpStage.classList.remove('max-h-[400px]', 'opacity-100', 'mt-4');
+            otpStage.classList.add('max-h-0', 'opacity-0');
+
+            if (backToCredentials) backToCredentials.classList.add('hidden');
+            if (errorContainer) errorContainer.classList.add('hidden');
+
+            submitBtn.disabled = false;
+            submitBtn.classList.add('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
+            submitBtn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+            submitBtn.innerHTML = '<span>Send OTP & Continue</span>';
+        }
+
+        function showError(msg) {
+            const errorContainer = document.getElementById('error-container');
+            const errorText = document.getElementById('error-text');
+            const submitBtn = document.getElementById('submitBtn');
+            const actionInput = document.getElementById('actionInput');
+
+            if (errorText) errorText.innerText = msg;
+            if (errorContainer) errorContainer.classList.remove('hidden');
+
+            submitBtn.disabled = false;
+            submitBtn.classList.add('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
+            submitBtn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+            submitBtn.innerHTML = actionInput.value === 'verify_otp' ? '<span>Verify OTP & Login</span>' : '<span>Send OTP & Continue</span>';
+        }
+    </script>
+</body>
+
+</html>

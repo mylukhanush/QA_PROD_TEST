@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}System Logs{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-950">System Logs</h2>
+            <p class="text-sm text-slate-500">Real-time structured logging and observability events.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="fetchLogs()" class="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 bg-white text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 shadow-sm transition">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582M20 20v-5h-.581M5.082 9A7.5 7.5 0 0119 11.5M18.918 15A7.5 7.5 0 015 12.5" />
+                </svg>
+                Refresh
+            </button>
+            <label class="inline-flex items-center gap-2 cursor-pointer bg-white px-4 py-2 border border-slate-200 rounded-xl shadow-sm text-sm font-semibold text-slate-700">
+                <input type="checkbox" id="auto-refresh" checked class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                <span>Auto-refresh (2s)</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Filters & Stats -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+                <label class="sr-only">Search logs</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </span>
+                    <input type="text" id="log-search" oninput="applyFilters()" placeholder="Search message, event, run_id, error..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Level:</span>
+                <div class="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+                    <button onclick="setLevelFilter('ALL')" id="btn-lvl-all" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-slate-900 shadow-sm">All</button>
+                    <button onclick="setLevelFilter('INFO')" id="btn-lvl-info" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">Info</button>
+                    <button onclick="setLevelFilter('WARNING')" id="btn-lvl-warn" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">Warning</button>
+                    <button onclick="setLevelFilter('ERROR')" id="btn-lvl-error" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">Error</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden font-mono text-[13px] text-slate-700">
+        <div class="max-h-[600px] overflow-y-auto custom-scrollbar">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 sticky top-0 text-slate-500 font-semibold border-b border-slate-200">
+                        <th class="py-3 px-4 w-48">Timestamp</th>
+                        <th class="py-3 px-4 w-24">Level</th>
+                        <th class="py-3 px-4 w-40">Event / Logger</th>
+                        <th class="py-3 px-4">Message</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-tbody" class="divide-y divide-slate-100">
+                    <!-- Logs will be loaded here -->
+                    <tr>
+                        <td colspan="4" class="py-12 text-center text-slate-400">Loading system logs...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for details JSON -->
+<div id="log-details-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden text-slate-700 font-mono">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h3 class="text-sm font-bold text-slate-800">Log Details</h3>
+            <button onclick="closeDetailsModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto max-h-[500px]">
+            <pre id="log-details-content" class="text-xs text-slate-600 whitespace-pre-wrap break-all bg-slate-50 p-4 rounded-xl border border-slate-200/60"></pre>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allLogs = [];
+let activeLevel = 'ALL';
+let pollInterval = null;
+
+async function fetchLogs() {
+    try {
+        const resp = await fetch('/api/logs');
+        const data = await resp.json();
+        allLogs = data.logs || [];
+        applyFilters();
+    } catch (err) {
+        console.error('Failed to fetch logs:', err);
+    }
+}
+
+function setLevelFilter(lvl) {
+    activeLevel = lvl;
+    ['all', 'info', 'warn', 'error'].forEach(id => {
+        const btn = document.getElementById(`btn-lvl-${id}`);
+        if (!btn) return;
+        btn.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
+        btn.classList.add('text-slate-600', 'hover:text-slate-900');
+    });
+
+    const activeId = lvl === 'ALL' ? 'all' : (lvl === 'WARNING' ? 'warn' : lvl.toLowerCase());
+    const activeBtn = document.getElementById(`btn-lvl-${activeId}`);
+    if (activeBtn) {
+        activeBtn.classList.remove('text-slate-600', 'hover:text-slate-900');
+        activeBtn.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
+    }
+    applyFilters();
+}
+
+function applyFilters() {
+    const search = document.getElementById('log-search').value.toLowerCase();
+    const tbody = document.getElementById('logs-tbody');
+    tbody.innerHTML = '';
+
+    const filtered = allLogs.filter(log => {
+        // Level filter
+        if (activeLevel !== 'ALL' && log.level !== activeLevel) return false;
+        
+        // Search filter
+        if (search) {
+            const valStr = JSON.stringify(log).toLowerCase();
+            return valStr.includes(search);
+        }
+        return true;
+    });
+
+    if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="py-12 text-center text-slate-500">No matching logs found.</td></tr>`;
+        return;
+    }
+
+    filtered.forEach(log => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-slate-50 cursor-pointer transition-colors';
+        row.onclick = () => showLogDetails(log);
+
+        let lvlClass = 'text-slate-500 bg-slate-100 border border-slate-200/60';
+        if (log.level === 'ERROR') lvlClass = 'text-red-700 bg-red-50 border border-red-200/60';
+        if (log.level === 'WARNING') lvlClass = 'text-amber-700 bg-amber-50 border border-amber-200/60';
+        if (log.level === 'INFO') lvlClass = 'text-green-700 bg-green-50 border border-green-200/60';
+
+        // Format Timestamp
+        let tsStr = log.timestamp || '';
+        if (tsStr) {
+            try {
+                const date = new Date(tsStr);
+                tsStr = date.toLocaleTimeString() + '.' + String(date.getMilliseconds()).padStart(3, '0');
+            } catch (e) {}
+        }
+
+        const eventStr = log.event || log.logger || '';
+
+        row.innerHTML = `
+            <td class="py-2.5 px-4 text-slate-400 whitespace-nowrap">${tsStr}</td>
+            <td class="py-2.5 px-4 whitespace-nowrap">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${lvlClass}">${log.level}</span>
+            </td>
+            <td class="py-2.5 px-4 text-slate-500 font-bold truncate max-w-[150px]" title="${eventStr}">${eventStr}</td>
+            <td class="py-2.5 px-4 text-slate-700 truncate max-w-lg" title="${escapeHtml(log.message)}">${escapeHtml(log.message)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function showLogDetails(log) {
+    const modal = document.getElementById('log-details-modal');
+    const content = document.getElementById('log-details-content');
+    content.textContent = JSON.stringify(log, null, 2);
+    modal.classList.remove('hidden');
+}
+
+function closeDetailsModal() {
+    document.getElementById('log-details-modal').classList.add('hidden');
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    fetchLogs();
+    
+    pollInterval = setInterval(() => {
+        const isAuto = document.getElementById('auto-refresh').checked;
+        if (isAuto) {
+            fetchLogs();
+        }
+    }, 2000);
+});
+</script>
+{% endblock %}

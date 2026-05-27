@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Site Crawler{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-2xl font-bold text-white">Site Crawler</h1>
+    <p class="text-sm text-gray-400 mt-1">Crawl sites to discover UI elements, selectors, and API endpoints</p>
+</div>
+
+<!-- Crawl Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div class="bg-surface-800 border border-white/5 rounded-xl p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center">
+                <svg class="w-5 h-5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-white">{{ element_count }}</p>
+                <p class="text-xs text-gray-500">Elements Mapped</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-surface-800 border border-white/5 rounded-xl p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-white">
+                    {{ last_crawl_time.strftime('%b %d, %Y %H:%M') if last_crawl_time else 'Never' }}
+                </p>
+                <p class="text-xs text-gray-500">Last Crawl</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-surface-800 border border-white/5 rounded-xl p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-sky-500/10 flex items-center justify-center">
+                <svg class="w-5 h-5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-white">{{ sites | length }}</p>
+                <p class="text-xs text-gray-500">Active Sites</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Crawl Action -->
+<div class="bg-surface-800 border border-white/5 rounded-xl p-5 mb-8">
+    <div class="flex flex-wrap items-end gap-4">
+        <div>
+            <label class="text-xs text-gray-500 block mb-2">Site to Crawl</label>
+            <select id="crawl-site-select" class="bg-surface-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-500/50">
+                {% for site in sites %}
+                <option value="{{ site.name }}">{{ site.name }} — {{ site.base_url }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button
+            id="btn-crawl"
+            onclick="startCrawl()"
+            class="bg-brand-600 hover:bg-brand-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-lg hover:shadow-brand-500/20 flex items-center gap-2"
+        >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Start Crawl
+        </button>
+    </div>
+</div>
+
+<!-- Crawl Progress -->
+<div id="crawl-progress" class="hidden mb-8">
+    <div class="bg-surface-800 border border-white/5 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-medium text-white flex items-center gap-2">
+                <span id="crawl-spinner" class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                Crawling...
+            </span>
+            <span id="crawl-pct" class="text-xs text-gray-500">0%</span>
+        </div>
+        <div class="w-full bg-surface-900 rounded-full h-2 mb-3">
+            <div id="crawl-bar" class="bg-gradient-to-r from-brand-500 to-brand-400 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <p id="crawl-message" class="text-xs text-gray-400">Starting crawler...</p>
+    </div>
+</div>
+
+<!-- Crawl Results -->
+<div id="crawl-result" class="hidden mb-8">
+    <div class="bg-surface-800 border border-emerald-500/20 rounded-xl p-5">
+        <div class="flex items-center gap-3 mb-2">
+            <span class="text-emerald-400 text-lg">✓</span>
+            <span class="text-sm font-semibold text-white">Crawl Complete</span>
+        </div>
+        <p id="crawl-result-text" class="text-xs text-gray-400"></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let crawlPollInterval = null;
+
+async function startCrawl() {
+    const site = document.getElementById('crawl-site-select').value;
+    document.getElementById('crawl-progress').classList.remove('hidden');
+    document.getElementById('crawl-result').classList.add('hidden');
+    document.getElementById('btn-crawl').disabled = true;
+
+    try {
+        const resp = await fetch('/api/crawl', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ site }),
+        });
+        const data = await resp.json();
+
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+
+        pollCrawlProgress(data.job_id);
+    } catch (err) {
+        alert('Crawl failed: ' + err.message);
+        document.getElementById('btn-crawl').disabled = false;
+    }
+}
+
+function pollCrawlProgress(jobId) {
+    if (crawlPollInterval) clearInterval(crawlPollInterval);
+
+    crawlPollInterval = setInterval(async () => {
+        try {
+            const resp = await fetch(`/api/crawl/${jobId}/progress`);
+            const data = await resp.json();
+
+            document.getElementById('crawl-bar').style.width = data.progress + '%';
+            document.getElementById('crawl-pct').textContent = data.progress + '%';
+            document.getElementById('crawl-message').textContent = data.message || '';
+
+            if (data.status === 'done' || data.status === 'error') {
+                clearInterval(crawlPollInterval);
+                document.getElementById('crawl-spinner').classList.remove('animate-pulse');
+                document.getElementById('btn-crawl').disabled = false;
+
+                if (data.status === 'done') {
+                    document.getElementById('crawl-spinner').classList.add('bg-emerald-400');
+                    document.getElementById('crawl-result').classList.remove('hidden');
+                    document.getElementById('crawl-result-text').textContent =
+                        `Found ${data.elements_found || 0} elements. Site map saved.`;
+                } else {
+                    document.getElementById('crawl-spinner').classList.add('bg-red-400');
+                    alert('Crawl error: ' + data.message);
+                }
+            }
+        } catch (err) {
+            console.error('Poll error:', err);
+        }
+    }, 1000);
+}
+</script>
+{% endblock %}
