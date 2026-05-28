@@ -134,11 +134,11 @@
             {% if session.get('jhs_username') %}
             <div class="px-4 py-4 sidebar-profile-card flex flex-col gap-2">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-md select-none shrink-0 border border-white/20">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-md select-none shrink-0 border border-white/20">
                         <span class="text-xs font-extrabold text-white uppercase">{{ session.get('jhs_username')[0] }}</span>
                     </div>
                     <div class="overflow-hidden">
-                        <p class="text-[9px] uppercase tracking-widest font-extrabold sidebar-profile-title leading-none mb-0.5">Active JHS Session</p>
+                        <p class="text-[9px] uppercase tracking-widest font-extrabold sidebar-profile-title leading-none mb-0.5">Active Jio Humsafar Session</p>
                         <p class="text-xs font-semibold sidebar-profile-user truncate" title="{{ session.get('jhs_username') }}">{{ session.get('jhs_username') }}</p>
                     </div>
                 </div>

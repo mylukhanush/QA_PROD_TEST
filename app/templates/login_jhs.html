@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JHS Portal Verification | QA Agent</title>
+    <title>Jio Humsafar Portal Verification | QA Agent</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -13,9 +13,9 @@
                 extend: {
                     colors: {
                         brand: {
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
                         }
                     }
                 }
@@ -25,53 +25,86 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;850&display=swap"
         rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Outfit', sans-serif;
             background: #f8fafc;
         }
 
         .glow-sphere {
             filter: blur(140px);
             opacity: 0.6;
-            mix-blend-mode: multiply;
             pointer-events: none;
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+
+        .btn-disabled {
+            background: #e2e8f0 !important;
+            color: #94a3b8 !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* Prevent auto-fill default chrome styles */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: #0f172a !important;
+            transition: background-color 5000s ease-in-out 0s;
+            box-shadow: inset 0 0 20px 20px rgba(248, 250, 252, 0.5);
         }
     </style>
 </head>
 
 <body class="h-full overflow-hidden relative text-slate-800 bg-[#f8fafc]">
     <!-- Glowing background blobs (Pastel Light Accents) -->
-    <div class="absolute w-[600px] h-[600px] rounded-full bg-brand-500/10 top-[-10%] left-[-10%] glow-sphere"></div>
-    <div class="absolute w-[600px] h-[600px] rounded-full bg-pink-500/5 bottom-[-10%] right-[-10%] glow-sphere"></div>
-    <div class="absolute w-[500px] h-[500px] rounded-full bg-indigo-500/10 top-[40%] left-[40%] glow-sphere"></div>
+    <div class="absolute w-[600px] h-[600px] rounded-full bg-blue-500/10 top-[-10%] left-[-10%] glow-sphere"></div>
+    <div class="absolute w-[600px] h-[600px] rounded-full bg-blue-500/5 bottom-[-10%] right-[-10%] glow-sphere"></div>
+    <div class="absolute w-[500px] h-[500px] rounded-full bg-sky-500/10 top-[40%] left-[40%] glow-sphere"></div>
 
     <!-- Main Grid Split Shell -->
     <div class="grid grid-cols-1 lg:grid-cols-12 h-full w-full min-h-screen relative z-10">
 
         <!-- Left Column: Branding Section -->
-        <div class="lg:col-span-5 flex flex-col justify-center items-center p-8 select-none">
+        <div class="lg:col-span-5 flex flex-col justify-center items-center p-8 select-none relative">
             <div class="flex flex-col items-center max-w-md text-center">
-                <!-- Large Elegant Lock Check Logo -->
+                <!-- Large Elegant Route Compass Logo -->
                 <div
-                    class="w-24 h-24 rounded-3xl bg-gradient-to-tr from-indigo-600 to-pink-500 flex items-center justify-center shadow-2xl shadow-indigo-500/20 mb-8 border border-white/20">
-                    <svg class="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                        stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    class="w-24 h-24 rounded-[2.2rem] bg-blue-600 flex items-center justify-center shadow-[0_15px_35px_rgba(37,99,235,0.2)] mb-8 border border-white/20 relative group hover:scale-105 transition-transform duration-300">
+                    <!-- Subtle pulsing internal glow -->
+                    <div class="absolute inset-0 rounded-[2.2rem] bg-blue-500 blur-lg opacity-30 group-hover:opacity-50 transition-opacity"></div>
+                    <svg class="w-12 h-12 text-white relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                     </svg>
                 </div>
 
                 <!-- Title & Subtitle -->
-                <h1 class="text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-3 text-center">
-                    JHS Portal
+                <h1 class="text-4xl lg:text-5xl font-black tracking-tight text-blue-600 mb-3 text-center">
+                    Jio Humsafar
                 </h1>
-                <p class="text-sm font-semibold tracking-[0.25em] text-brand-600 uppercase text-center">
+                <p class="text-xs font-bold tracking-[0.3em] text-blue-600 uppercase text-center">
                     Portal Authentication
                 </p>
-                <div class="w-16 h-1 bg-gradient-to-r from-brand-500 to-pink-500 rounded-full mt-6 mx-auto"></div>
+                <div class="w-16 h-[3px] bg-blue-500 rounded-full mt-6 mx-auto"></div>
             </div>
         </div>
 
@@ -81,13 +114,13 @@
 
                 <!-- Glass Card -->
                 <div
-                    class="bg-white/80 backdrop-blur-2xl border border-slate-200/80 p-8 lg:p-10 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+                    class="bg-white/70 backdrop-blur-2xl border border-white/40 p-8 lg:p-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(30,41,59,0.08)] relative overflow-hidden">
                     <div class="relative z-10">
-                        <h2 class="text-2xl font-bold text-slate-900 mb-2">JHS Website Login</h2>
-                        <p class="text-sm text-slate-500 mb-8">Enter correct credentials for JHS website. All operations will lock to this mail ID.</p>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2 tracking-tight">Jio Humsafar Website Login</h2>
+                        <p class="text-sm text-slate-500 mb-8 font-light">Enter correct credentials for Jio Humsafar website. All operations will lock to this mail ID.</p>
 
                         <div id="error-container"
-                            class="{% if not error %}hidden{% endif %} mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 flex gap-3 text-rose-800 text-sm">
+                            class="{% if not error %}hidden{% endif %} mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-100 flex gap-3 text-rose-800 text-sm">
                             <svg class="w-5 h-5 shrink-0 text-rose-600" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -100,11 +133,11 @@
                             <input type="hidden" name="action" id="actionInput" value="{% if otp_sent %}verify_otp{% else %}send_otp{% endif %}">
 
                             <!-- Stage 1: Credentials Input Stage -->
-                            <div id="credentials-stage" class="space-y-6 transition-all duration-500 ease-in-out {% if otp_sent %}opacity-40 max-h-0 pointer-events-none mt-[-1.5rem]{% else %}opacity-100 max-h-[400px]{% endif %} overflow-hidden">
+                            <div id="credentials-stage" class="px-1.5 pb-2 space-y-6 transition-all duration-500 ease-in-out {% if otp_sent %}opacity-40 max-h-0 pointer-events-none mt-[-1.5rem]{% else %}opacity-100 max-h-[500px]{% endif %} overflow-hidden">
                                 <!-- Email -->
                                 <div>
                                     <label for="username"
-                                        class="block text-xs uppercase tracking-wider font-semibold text-slate-500 mb-2">JHS Email (Mail ID)</label>
+                                        class="block text-xs uppercase tracking-wider font-semibold text-slate-500 mb-2">Jio Humsafar Email</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-0 pl-4 flex items-center text-slate-400">
                                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -115,14 +148,14 @@
                                         </span>
                                         <input type="email" id="username" name="username" value="{{ username or '' }}" required autocomplete="email"
                                             placeholder="ranjit@assettl.com"
-                                            class="w-full bg-slate-50/50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
+                                            class="w-full bg-slate-50/60 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/80 transition-all duration-300">
                                     </div>
                                 </div>
 
                                 <!-- Password with Eye Toggle -->
                                 <div>
                                     <label for="password"
-                                        class="block text-xs uppercase tracking-wider font-semibold text-slate-500 mb-2">JHS Password</label>
+                                        class="block text-xs uppercase tracking-wider font-semibold text-slate-500 mb-2">Jio Humsafar Password</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-0 pl-4 flex items-center text-slate-400">
                                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -133,10 +166,10 @@
                                         </span>
                                         <input type="password" id="password" name="password" required
                                             placeholder="Enter password"
-                                            class="w-full bg-slate-50/50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-12 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
+                                            class="w-full bg-slate-50/60 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-12 text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/80 transition-all duration-300">
                                         <!-- Eye icon toggle button -->
                                         <button type="button" onclick="togglePassword()" id="eye-toggle"
-                                            class="absolute right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors focus:outline-none">
+                                            class="absolute right-0 pr-4 flex items-center text-slate-400 hover:text-slate-650 transition-colors focus:outline-none">
                                             <span id="eye-icon">
                                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                                     stroke-width="2">
@@ -152,7 +185,7 @@
                             </div>
 
                             <!-- Stage 2: OTP Verification Stage -->
-                            <div id="otp-stage" class="space-y-4 overflow-hidden transition-all duration-700 ease-in-out {% if otp_sent %}max-h-[400px] opacity-100 mt-4{% else %}max-h-0 opacity-0{% endif %}">
+                            <div id="otp-stage" class="px-1.5 pb-2 space-y-4 overflow-hidden transition-all duration-700 ease-in-out {% if otp_sent %}max-h-[500px] opacity-100 mt-4{% else %}max-h-0 opacity-0{% endif %}">
                                 <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex gap-3 text-emerald-800 text-sm">
                                     <svg class="w-5 h-5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -161,7 +194,7 @@
                                 </div>
                                 
                                 <div>
-                                    <label for="otp_code" class="block text-xs uppercase tracking-wider font-semibold text-slate-500 mb-2">Enter JHS OTP Code</label>
+                                    <label for="otp_code" class="block text-xs uppercase tracking-wider font-semibold text-slate-500 mb-2">Enter Jio Humsafar OTP Code</label>
                                     <div class="relative">
                                         <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
                                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -169,7 +202,7 @@
                                             </svg>
                                         </span>
                                         <input type="text" id="otp_code" name="otp_code" placeholder="Enter OTP" maxlength="6"
-                                            class="w-full bg-slate-50/50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all tracking-[0.2em] text-center font-bold text-lg">
+                                            class="w-full bg-slate-50/60 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/80 transition-all duration-300 tracking-[0.2em] text-center font-bold text-lg">
                                     </div>
                                 </div>
                             </div>
@@ -177,7 +210,7 @@
                             <!-- Submit button and loading state container -->
                             <div class="pt-2">
                                 <button type="submit" id="submitBtn"
-                                    class="w-full py-4 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-brand-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                                    class="w-full py-4 btn-primary text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2">
                                     <span id="submitBtnText">{% if otp_sent %}Verify OTP & Login{% else %}Send OTP & Continue{% endif %}</span>
                                 </button>
                                 <div id="back-to-credentials" class="mt-4 text-center {% if not otp_sent %}hidden{% endif %}">
@@ -246,23 +279,23 @@
                 if (document.getElementById('password')) document.getElementById('password').disabled = true;
 
                 // Slide Out Credentials Stage
-                credentialsStage.classList.remove('opacity-100', 'max-h-[400px]');
+                credentialsStage.classList.remove('opacity-100', 'max-h-[500px]');
                 credentialsStage.classList.add('opacity-40', 'max-h-0', 'pointer-events-none', 'mt-[-1.5rem]');
 
                 // Slide Down OTP Stage
                 otpStage.classList.remove('max-h-0', 'opacity-0');
-                otpStage.classList.add('max-h-[400px]', 'opacity-100', 'mt-4');
+                otpStage.classList.add('max-h-[500px]', 'opacity-100', 'mt-4');
 
                 // Update the instruction banner inside OTP stage to show "connecting" state
                 const otpBanner = otpStage.querySelector('div');
                 if (otpBanner) {
-                    otpBanner.className = "p-4 rounded-2xl bg-brand-50 border border-brand-100 flex gap-3 text-brand-800 text-sm transition-all";
+                    otpBanner.className = "p-4 rounded-2xl bg-blue-50 border border-blue-100 flex gap-3 text-blue-800 text-sm transition-all";
                     otpBanner.innerHTML = `
-                        <svg class="animate-spin h-5 w-5 text-brand-600 shrink-0" fill="none" viewBox="0 0 24 24">
+                        <svg class="animate-spin h-5 w-5 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span>Connecting to JHS portal to request your security OTP...</span>
+                        <span>Connecting to Jio Humsafar portal to request your security OTP...</span>
                     `;
                 }
 
@@ -271,14 +304,13 @@
 
                 // Disable submit button during active background dispatch
                 submitBtn.disabled = true;
-                submitBtn.classList.remove('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
-                submitBtn.classList.add('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+                submitBtn.className = "w-full py-4 btn-disabled font-bold rounded-2xl transition-all flex items-center justify-center gap-2";
                 submitBtn.innerHTML = `
                     <svg class="animate-spin h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Requesting JHS OTP...</span>
+                    <span>Requesting Jio Humsafar OTP...</span>
                 `;
 
                 // Autofocus OTP code input
@@ -316,18 +348,17 @@
                         }
 
                         submitBtn.disabled = false;
-                        submitBtn.classList.add('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
-                        submitBtn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+                        submitBtn.className = "w-full py-4 btn-primary text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2";
                         submitBtn.innerHTML = '<span>Verify OTP & Login</span>';
                     } else {
                         // Background dispatch failed. Revert to Credentials view
                         resetToCredentials();
-                        showError(result.error || 'Could not connect to JHS. Please check credentials.');
+                        showError(result.error || 'Could not connect to Jio Humsafar. Please check credentials.');
                     }
                 } catch (err) {
                     console.error(err);
                     resetToCredentials();
-                    showError('Network error. JHS portal unreachable.');
+                    showError('Network error. Jio Humsafar portal unreachable.');
                 }
             } else if (action === 'verify_otp') {
                 // Standard OTP submission path
@@ -337,14 +368,13 @@
                 }
 
                 submitBtn.disabled = true;
-                submitBtn.classList.remove('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
-                submitBtn.classList.add('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+                submitBtn.className = "w-full py-4 btn-disabled font-bold rounded-2xl transition-all flex items-center justify-center gap-2";
                 submitBtn.innerHTML = `
                     <svg class="animate-spin h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Verifying OTP with JHS...</span>
+                    <span>Verifying OTP with Jio Humsafar...</span>
                 `;
 
                 try {
@@ -367,8 +397,7 @@
                     } else {
                         // Reset button state so they can retry typing!
                         submitBtn.disabled = false;
-                        submitBtn.classList.add('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
-                        submitBtn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+                        submitBtn.className = "w-full py-4 btn-primary text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2";
                         submitBtn.innerHTML = '<span>Verify OTP & Login</span>';
 
                         // OTP incorrect
@@ -380,8 +409,7 @@
                 } catch (err) {
                     console.error(err);
                     submitBtn.disabled = false;
-                    submitBtn.classList.add('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
-                    submitBtn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+                    submitBtn.className = "w-full py-4 btn-primary text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2";
                     submitBtn.innerHTML = '<span>Verify OTP & Login</span>';
                     showError('Connection error. Failed to verify OTP.');
                 }
@@ -406,18 +434,17 @@
 
             // Slide In Credentials Stage
             credentialsStage.classList.remove('opacity-40', 'max-h-0', 'pointer-events-none', 'mt-[-1.5rem]');
-            credentialsStage.classList.add('opacity-100', 'max-h-[400px]');
+            credentialsStage.classList.add('opacity-100', 'max-h-[500px]');
 
             // Slide Out OTP Stage
-            otpStage.classList.remove('max-h-[400px]', 'opacity-100', 'mt-4');
+            otpStage.classList.remove('max-h-[500px]', 'opacity-100', 'mt-4');
             otpStage.classList.add('max-h-0', 'opacity-0');
 
             if (backToCredentials) backToCredentials.classList.add('hidden');
             if (errorContainer) errorContainer.classList.add('hidden');
 
             submitBtn.disabled = false;
-            submitBtn.classList.add('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
-            submitBtn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+            submitBtn.className = "w-full py-4 btn-primary text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2";
             submitBtn.innerHTML = '<span>Send OTP & Continue</span>';
         }
 
@@ -431,8 +458,7 @@
             if (errorContainer) errorContainer.classList.remove('hidden');
 
             submitBtn.disabled = false;
-            submitBtn.classList.add('bg-gradient-to-r', 'from-brand-600', 'to-indigo-600');
-            submitBtn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+            submitBtn.className = "w-full py-4 btn-primary text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2";
             submitBtn.innerHTML = actionInput.value === 'verify_otp' ? '<span>Verify OTP & Login</span>' : '<span>Send OTP & Continue</span>';
         }
     </script>

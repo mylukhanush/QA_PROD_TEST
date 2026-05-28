@@ -209,7 +209,7 @@ def create_app(config_overrides=None):
                         if is_ajax:
                             return jsonify({"success": True, "otp_sent": True})
                     else:
-                        error_msg = session_obj.error or "Connection to JHS portal timed out. Please try again."
+                        error_msg = session_obj.error or "Connection to Jio Humsafar portal timed out. Please try again."
                         # Clean up failed session
                         session_obj.close()
                         jhs_active_sessions.pop(session_obj.id, None)
@@ -237,7 +237,7 @@ def create_app(config_overrides=None):
                     session_obj = jhs_active_sessions.get(session_id)
                     
                     if not session_obj:
-                        error = "Your JHS credentials verification session has expired. Please try again."
+                        error = "Your Jio Humsafar credentials verification session has expired. Please try again."
                         otp_sent = False
                         if is_ajax:
                             return jsonify({"success": False, "error": error, "expired": True})
@@ -246,8 +246,8 @@ def create_app(config_overrides=None):
                         session_obj.otp_code = otp_code
                         session_obj.otp_input_event.set()
                         
-                        # Wait for worker thread to submit OTP and verify success (timeout 30s)
-                        finished = session_obj.login_result_event.wait(timeout=30.0)
+                        # Wait for worker thread to submit OTP and verify success (timeout 90s)
+                        finished = session_obj.login_result_event.wait(timeout=90.0)
                         
                         if finished and session_obj.success:
                             # Save validated credentials into current session context
@@ -265,7 +265,7 @@ def create_app(config_overrides=None):
                                 return jsonify({"success": True, "redirect": url_for("runner.dashboard")})
                             return redirect(url_for("runner.dashboard"))
                         else:
-                            error = session_obj.error or "Incorrect or expired OTP code, or JHS portal request timeout."
+                            error = session_obj.error or "Incorrect or expired OTP code, or Jio Humsafar portal request timeout."
                             otp_sent = True
                             
                             # Check if the browser background thread is still alive

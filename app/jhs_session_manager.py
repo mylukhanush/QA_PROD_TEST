@@ -13,23 +13,66 @@ def click_recaptcha_if_present(page, prefix="[JHS LOOP]", timeout_ms=3000):
         print(f"{prefix} reCAPTCHA iframe visible! Accessing frame locator...", flush=True)
         frame = page.frame_locator(recaptcha_iframe_sel).first
         
+        # Check if the iframe contains quota error text
+        quota_exceeded = False
+        try:
+            body_content = frame.locator("body").text_content() or ""
+            if "exceeding" in body_content.lower() and "quota" in body_content.lower():
+                print(f"{prefix} Warning: reCAPTCHA Enterprise quota exceeded detected in iframe. Proceeding with click, but will limit wait...", flush=True)
+                quota_exceeded = True
+        except Exception:
+            pass
+
         # Locate checkbox inside the frame
         checkbox = frame.locator("#recaptcha-anchor, .recaptcha-checkbox, .recaptcha-checkbox-border").first
         checkbox.wait_for(state="visible", timeout=5000)
         
         checked = checkbox.get_attribute("aria-checked")
         if checked != "true":
-            print(f"{prefix} Clicking reCAPTCHA checkbox...", flush=True)
-            checkbox.click()
-            print(f"{prefix} Clicked. Waiting up to 90s for green checkmark (aria-checked='true')...", flush=True)
+            iframe_element = page.locator(recaptcha_iframe_sel).first
+            iframe_element.scroll_into_view_if_needed()
+            box = iframe_element.bounding_box()
+            
+            import random
+            if box:
+                # Target center of checkbox inside the reCAPTCHA iframe
+                target_x = box["x"] + 28 + random.randint(-3, 3)
+                target_y = box["y"] + 38 + random.randint(-3, 3)
+                
+                print(f"{prefix} Simulating human mouse movement to checkbox at ({target_x}, {target_y})...", flush=True)
+                page.mouse.move(target_x, target_y, steps=12)
+                page.wait_for_timeout(random.randint(150, 300))
+                
+                # Perform natural human-like mouse press and release
+                page.mouse.down()
+                page.wait_for_timeout(random.randint(80, 160))
+                page.mouse.up()
+                print(f"{prefix} Human mouse click completed.", flush=True)
+            else:
+                print(f"{prefix} Bounding box not available, falling back to locator click...", flush=True)
+                checkbox.click(delay=250)
+            
+            max_wait = 15 if quota_exceeded else 90
+            print(f"{prefix} Clicked. Waiting up to {max_wait}s for green checkmark (aria-checked='true')...", flush=True)
             
             # Poll for the checkmark
-            for _ in range(90):
+            for i in range(max_wait):
                 checked = checkbox.get_attribute("aria-checked")
                 if checked == "true":
                     print(f"{prefix} reCAPTCHA successfully verified (checkmark active)!", flush=True)
                     page.wait_for_timeout(1000)
                     break
+                
+                # Check for quota error inside the loop as it might load asynchronously
+                try:
+                    body_content = frame.locator("body").text_content() or ""
+                    if "exceeding" in body_content.lower() and "quota" in body_content.lower():
+                        print(f"{prefix} Warning: reCAPTCHA Enterprise quota exceeded detected during polling at second {i}. Aborting wait...", flush=True)
+                        page.wait_for_timeout(500)
+                        break
+                except Exception:
+                    pass
+                
                 page.wait_for_timeout(1000)
         else:
             print(f"{prefix} reCAPTCHA is already verified.", flush=True)
@@ -85,8 +128,15 @@ class JHSSession:
         try:
             pw = sync_playwright().start()
             headless_env = os.getenv("PLAYWRIGHT_HEADLESS", "false").lower() == "true"
-            browser = pw.chromium.launch(headless=headless_env)
-            context = browser.new_context(viewport={"width": 1280, "height": 720})
+            browser = pw.chromium.launch(
+                headless=headless_env,
+                args=["--disable-blink-features=AutomationControlled"]
+            )
+            context = browser.new_context(
+                viewport={"width": 1280, "height": 720},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            )
+            context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
             page = context.new_page()
             
             otp_sent_successfully = False
@@ -165,6 +215,7 @@ class JHSSession:
                 
                 # Reset event flag
                 self.otp_input_event.clear()
+                self.error = None
                 
                 print(f"[JHS LOOP] Received OTP code: '{self.otp_code}'. Refilling OTP field...", flush=True)
                 otp_sel = "input#otp_Email:visible, input[id*='otp']:visible, input[name='otp']:visible"
