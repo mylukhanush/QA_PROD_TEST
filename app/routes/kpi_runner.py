@@ -95,7 +95,7 @@ def _wait_and_capture_kpi_data(page, start_time_ref, timeout_sec=45.0, cancel_ch
         # Multi-layer fallback page scanning for any visible text representing total count inside active container
         scanned_val = None
         for prefix in containers:
-            for base_sel in ['.mat-paginator-range-label:visible', '.mat-mdc-paginator-range-label:visible', 'span:visible', 'div:visible', 'td:visible']:
+            for base_sel in ['.mat-paginator-range-label:visible', '.mat-mdc-paginator-range-label:visible', 'span:visible', 'div:visible', 'td:visible', 'p:visible', 'li:visible']:
                 try:
                     loc = page.locator(f"{prefix}{base_sel}")
                     cnt = loc.count()
@@ -422,86 +422,86 @@ def _kpi_runner_worker(app, site_id, run_id, jhs_credentials=None):
                     elif stype == "cargo_tab":
                         tab_name = step["tab_name"]
                         page.wait_for_selector('.mat-tab-label, .page-inner-content .nav-link, #ongoing-view-tab, #upcoming-view-tab, #completed-view-tab', timeout=15000)
-                        tab_el = None
-                        cargo_selectors = [
-                            f"#{tab_name.lower()}-view-tab",
-                            f'.mat-tab-label:has-text("{tab_name}")',
-                            f'.page-inner-content .nav-link:has-text("{tab_name}")',
-                            f'div.mat-tab-label >> text={tab_name}',
-                            f'button:has-text("{tab_name}")'
-                        ]
-                        for sel in cargo_selectors:
-                            if page.locator(sel).count() > 0:
-                                tab_el = page.locator(sel).first
-                                break
                         
-                        container_sel = f"#{tab_name.lower()}-view"
-                        fallback_containers = [
-                            container_sel,
-                            f"#trip-{tab_name.lower()}-view",
-                            f"#{tab_name.lower()}",
-                            "div.tab-pane.active",
-                            ".tab-content .active",
-                            ".tab-content",
-                            "div.mat-tab-body-active",
-                            "mat-tab-body.mat-tab-body-active",
-                            ".mat-mdc-tab-body-active",
-                            ".mat-tab-body-active"
-                        ]
+                        # Wait for initial SPA loading and rendering to settle
+                        page.wait_for_timeout(3000)
+                        
+                        tab_el = None
+                        if tab_name != "Summary":
+                            cargo_selectors = [
+                                f"#{tab_name.lower()}-view-tab",
+                                f'.mat-tab-label:has-text("{tab_name}")',
+                                f'.page-inner-content .nav-link:has-text("{tab_name}")',
+                                f'div.mat-tab-label >> text={tab_name}',
+                                f'button:has-text("{tab_name}")',
+                                f".nav-tabs .nav-link:has-text('{tab_name}')"
+                            ]
+                            for sel in cargo_selectors:
+                                if page.locator(sel).count() > 0:
+                                    tab_el = page.locator(sel).first
+                                    break
                         
                         start_tab = time.time()
                         if tab_el:
                             tab_el.click()
-                            
-                        # Try to identify which container actually became active/visible
-                        actual_container = None
-                        start_wait = time.time()
-                        while time.time() - start_wait < 15.0:
-                            for c in fallback_containers:
-                                try:
-                                    loc = page.locator(c).first
-                                    if loc.count() > 0 and loc.is_visible():
-                                        actual_container = c
-                                        break
-                                except Exception:
-                                    pass
-                            if actual_container:
-                                break
-                            page.wait_for_timeout(500)
-                            
-                        if not actual_container:
-                            actual_container = container_sel
-                            
+                            # Wait for tab transition to complete
+                            page.wait_for_timeout(1500)
+                        
+                        actual_container = f"#{tab_name.lower()}-view" if tab_name != "Summary" else "div.tab-pane.active"
+                        
                         # Wait for any spinner to disappear
                         try:
-                            page.wait_for_selector('.loading, .loader, [class*="spinner"], [class*="loading"], mat-progress-bar', state="hidden", timeout=20000)
+                            page.wait_for_selector('.loading, .loader, [class*="spinner"], [class*="loading"], mat-progress-bar', state="hidden", timeout=10000)
                         except Exception:
                             pass
                             
-                        # Wait for table rows or empty state inside actual_container
+                        # Extract the count in a robust wait loop to prevent race conditions on SPA rendering
+                        rec_val = 0
                         start_wait = time.time()
                         while time.time() - start_wait < 15.0:
-                            rows = page.locator(f"{actual_container} table tbody tr:visible, {actual_container} mat-row:visible, {actual_container} .no-data:visible, {actual_container} .no-records:visible")
-                            if rows.count() > 0:
-                                break
+                            # 1. Try to extract from "Total count:" text
+                            total_count_sel = f"{actual_container} >> text=Total count:"
+                            tc_loc = page.locator(total_count_sel).first
+                            if tc_loc.count() > 0:
+                                txt = tc_loc.text_content()
+                                m = re.search(r"Total\s+count:\s*([\d,]+)", txt, re.IGNORECASE)
+                                if m:
+                                    val = int(m.group(1).replace(',', ''))
+                                    # If cards are visible, total count should be > 0.
+                                    # Wait for non-zero unless no cards are visible.
+                                    cards_loc = page.locator(f"{actual_container} .ongoing_card:visible, {actual_container} [class*='card']:visible")
+                                    if val > 0:
+                                        rec_val = val
+                                        break
+                                    elif val == 0 and cards_loc.count() == 0:
+                                        # Genuine 0 count
+                                        rec_val = 0
+                                        if time.time() - start_wait > 2.0:
+                                            break
+                                            
+                            # 2. Check for explicit empty state selectors
+                            no_data_selectors = ['.no-data:visible', '.no-records:visible', 'text="No records found"', 'text="No data found"']
+                            no_data_visible = False
+                            for nd_sel in no_data_selectors:
+                                if page.locator(f"{actual_container} >> {nd_sel}").count() > 0:
+                                    no_data_visible = True
+                                    break
+                                    
+                            if no_data_visible:
+                                rec_val = 0
+                                if time.time() - start_wait > 2.0:
+                                    break
+                                    
+                            # 3. Fallback: count card cards
+                            rows_loc = page.locator(f"{actual_container} .ongoing_card:visible, {actual_container} [class*='card']:visible")
+                            if rows_loc.count() > 0:
+                                rec_val = rows_loc.count()
+                                if rec_val > 0 and time.time() - start_wait > 3.0:
+                                    break
+                                    
                             page.wait_for_timeout(500)
                             
                         load_time = f"{time.time() - start_tab:.2f}"
-                        
-                        # Extract the count
-                        rec_val = 0
-                        total_count_sel = f"{actual_container} >> text=\"Total count:\""
-                        tc_loc = page.locator(total_count_sel).first
-                        if tc_loc.count() > 0:
-                            txt = tc_loc.text_content()
-                            m = re.search(r"Total\s+count:\s*(\d+)", txt, re.IGNORECASE)
-                            if m:
-                                rec_val = int(m.group(1))
-                        else:
-                            rows_loc = page.locator(f"{actual_container} table tbody tr:visible, {actual_container} mat-row:visible")
-                            if rows_loc.count() > 0:
-                                rec_val = rows_loc.count()
-                                
                         rec_count = str(rec_val)
                         
                     elif stype in ("video_tab", "ignition_tab"):
@@ -520,7 +520,8 @@ def _kpi_runner_worker(app, site_id, run_id, jhs_credentials=None):
                                     
                     elif stype == "report_alert":
                         alert_filter = step["alert_filter"]
-                        page.wait_for_selector('.multiselect-dropdown, button[title="View"], button:has-text("View")', timeout=15000)
+                        page.wait_for_timeout(3000)
+                        page.wait_for_selector('.multiselect-dropdown, button[title="View"], button:has-text("View")', timeout=35000)
                         
                         # Select first vehicle or select all
                         veh_drop = page.locator('.multiselect-dropdown:has-text("Vehicle")').first
@@ -572,6 +573,20 @@ def _kpi_runner_worker(app, site_id, run_id, jhs_credentials=None):
                             try:
                                 choose_btn.click()
                                 page.wait_for_timeout(1000)
+                                
+                                # Programmatically deselect all checked checkboxes first (such as High priority and previous filters)
+                                try:
+                                    page.evaluate("""() => {
+                                        const checkedCheckboxes = document.querySelectorAll('.Alert-dropdown input[type="checkbox"]:checked');
+                                        checkedCheckboxes.forEach(cb => {
+                                            cb.click();
+                                            cb.dispatchEvent(new Event('change', { bubbles: true }));
+                                        });
+                                    }""")
+                                    page.wait_for_timeout(500)
+                                except Exception as e:
+                                    print(f"[KPI RUNNER] Warning: failed to deselect checked checkboxes: {e}", flush=True)
+                                    
                                 search_in = page.locator('.Alert-dropdown input[placeholder="Search"], input.form-control[placeholder="Search"]').first
                                 if search_in.count() > 0:
                                     search_in.fill(alert_filter)
@@ -650,7 +665,8 @@ def _kpi_runner_worker(app, site_id, run_id, jhs_credentials=None):
                         load_time, rec_count = _wait_and_capture_kpi_data(page, start_rep, cancel_check_fn=check_cancel)
                                     
                     elif stype == "report_other":
-                        page.wait_for_selector('.multiselect-dropdown, button[title="View"], button:has-text("View")', timeout=15000)
+                        page.wait_for_timeout(3000)
+                        page.wait_for_selector('.multiselect-dropdown, button[title="View"], button:has-text("View")', timeout=35000)
                         
                         # Select first vehicle or select all
                         veh_drop = page.locator('.multiselect-dropdown:has-text("Vehicle")').first
