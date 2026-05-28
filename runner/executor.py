@@ -35,7 +35,7 @@ from runner.waiter import (
 def _site_env(site_name: str, jhs_credentials: dict = None) -> dict:
     """Load site credentials from environment variables."""
     prefix = site_name.upper()
-    url = os.getenv(f"{prefix}_URL") or "https://jiohumsafar.jio.com/"
+    url = os.getenv(f"{prefix}_URL") or os.getenv("JIO_HUMSAFAR_PROD_URL") or "https://jiohumsafar.jio.com/"
     if jhs_credentials and jhs_credentials.get("username") and jhs_credentials.get("password"):
         return {
             "url": url,
@@ -44,8 +44,8 @@ def _site_env(site_name: str, jhs_credentials: dict = None) -> dict:
         }
     return {
         "url": url,
-        "username": os.getenv(f"{prefix}_USERNAME"),
-        "password": os.getenv(f"{prefix}_PASSWORD"),
+        "username": os.getenv(f"{prefix}_USERNAME") or os.getenv("QA_AGENT_USERNAME") or "admin",
+        "password": os.getenv(f"{prefix}_PASSWORD") or os.getenv("QA_AGENT_PASSWORD") or "admin",
     }
 
 

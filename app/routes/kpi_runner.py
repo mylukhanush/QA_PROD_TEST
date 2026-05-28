@@ -162,14 +162,14 @@ def _kpi_runner_worker(app, site_id, run_id, jhs_credentials=None):
     import os
     
     prefix = site.name.upper()
-    base_url = os.getenv(f"{prefix}_URL") or "https://jiohumsafar.jio.com/"
+    base_url = os.getenv(f"{prefix}_URL") or os.getenv("JIO_HUMSAFAR_PROD_URL") or "https://jiohumsafar.jio.com/"
     
     if jhs_credentials and jhs_credentials.get("username") and jhs_credentials.get("password"):
         username = jhs_credentials["username"]
         password = jhs_credentials["password"]
     else:
-        username = os.getenv(f"{prefix}_USERNAME") or "admin"
-        password = os.getenv(f"{prefix}_PASSWORD") or "admin"
+        username = os.getenv(f"{prefix}_USERNAME") or os.getenv("QA_AGENT_USERNAME") or "admin"
+        password = os.getenv(f"{prefix}_PASSWORD") or os.getenv("QA_AGENT_PASSWORD") or "admin"
     
     # helper to save ValueCaptures
     def save_metric(label, page_name, selector, val):

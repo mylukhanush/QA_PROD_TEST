@@ -24,16 +24,17 @@ from db.models import Site, SiteElement
 def _site_env(site_name: str, jhs_credentials=None):
     """Load site credentials from environment variables."""
     prefix = site_name.upper()  # JHS81, JHS82, …
+    url = os.getenv(f"{prefix}_URL") or os.getenv("JIO_HUMSAFAR_PROD_URL") or "https://jiohumsafar.jio.com/"
     if jhs_credentials and jhs_credentials.get("username") and jhs_credentials.get("password"):
         return {
-            "url": os.getenv(f"{prefix}_URL"),
+            "url": url,
             "username": jhs_credentials["username"],
             "password": jhs_credentials["password"],
         }
     return {
-        "url": os.getenv(f"{prefix}_URL"),
-        "username": os.getenv(f"{prefix}_USERNAME"),
-        "password": os.getenv(f"{prefix}_PASSWORD"),
+        "url": url,
+        "username": os.getenv(f"{prefix}_USERNAME") or os.getenv("QA_AGENT_USERNAME") or "admin",
+        "password": os.getenv(f"{prefix}_PASSWORD") or os.getenv("QA_AGENT_PASSWORD") or "admin",
     }
 
 

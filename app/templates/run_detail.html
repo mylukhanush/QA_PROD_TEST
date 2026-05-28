@@ -46,14 +46,15 @@
             <p class="text-xs text-gray-500 mb-3">Choose a website for the new run.</p>
             <div class="grid grid-cols-2 gap-3">
                 {% for site in sites %}
+                {% if site.name == 'jhs84' %}
                 <label class="cursor-pointer">
-                    <input type="radio" name="rerun-site" value="{{ site.name }}" class="sr-only peer" {% if run.site
-                        and site.id==run.site.id %}checked{% endif %}>
+                    <input type="radio" name="rerun-site" value="{{ site.name }}" class="sr-only peer" checked>
                     <span
                         class="block rounded-lg border border-white/10 bg-surface-900 px-4 py-3 text-sm font-medium text-gray-300 peer-checked:border-brand-500/70 peer-checked:bg-brand-500/15 peer-checked:text-brand-200 hover:border-white/20 transition-colors">
-                        {{ site.name }}
+                        Jio Humsafar
                     </span>
                 </label>
+                {% endif %}
                 {% endfor %}
             </div>
             <div id="rerun-error" class="hidden mt-4 text-xs text-red-400"></div>
@@ -82,7 +83,13 @@
         <p class="text-sm">
             <span
                 class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brand-500/10 text-brand-300">
-                {{ run.site.name if run.site else '—' }}
+                {% if run.site and run.site.name in ('jhs81', 'jhs82', 'jhs83', 'jhs84') %}
+                Jio Humsafar
+                {% elif run.site %}
+                {{ run.site.name }}
+                {% else %}
+                —
+                {% endif %}
             </span>
         </p>
     </div>

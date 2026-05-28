@@ -59,7 +59,9 @@
             <label class="text-xs text-gray-500 block mb-2">Site to Crawl</label>
             <select id="crawl-site-select" class="bg-surface-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-500/50">
                 {% for site in sites %}
-                <option value="{{ site.name }}">{{ site.name }} — {{ site.base_url }}</option>
+                {% if site.name == 'jhs84' %}
+                <option value="{{ site.name }}">Jio Humsafar — https://jiohumsafar.jio.com/</option>
+                {% endif %}
                 {% endfor %}
             </select>
         </div>

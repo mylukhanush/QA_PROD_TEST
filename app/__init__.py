@@ -98,10 +98,10 @@ def create_app(config_overrides=None):
         try:
             from db.models import Site
             sites_data = [
-                {"name": "jhs81", "base_url": os.getenv("JHS81_URL", "http://jhs81.assettl.com")},
-                {"name": "jhs82", "base_url": os.getenv("JHS82_URL", "http://jhs82.assettl.com")},
-                {"name": "jhs83", "base_url": os.getenv("JHS83_URL", "http://jhs83.assettl.com")},
-                {"name": "jhs84", "base_url": os.getenv("JHS84_URL", "http://jhs84.assettl.com")},
+                {"name": "jhs81", "base_url": os.getenv("JHS81_URL") or os.getenv("JIO_HUMSAFAR_PROD_URL") or "https://jiohumsafar.jio.com/"},
+                {"name": "jhs82", "base_url": os.getenv("JHS82_URL") or os.getenv("JIO_HUMSAFAR_PROD_URL") or "https://jiohumsafar.jio.com/"},
+                {"name": "jhs83", "base_url": os.getenv("JHS83_URL") or os.getenv("JIO_HUMSAFAR_PROD_URL") or "https://jiohumsafar.jio.com/"},
+                {"name": "jhs84", "base_url": os.getenv("JHS84_URL") or os.getenv("JIO_HUMSAFAR_PROD_URL") or "https://jiohumsafar.jio.com/"},
             ]
             for sd in sites_data:
                 existing = Site.query.filter_by(name=sd["name"]).first()
@@ -109,6 +109,9 @@ def create_app(config_overrides=None):
                     site = Site(name=sd["name"], base_url=sd["base_url"])
                     db.session.add(site)
                     print(f"Seeded site {sd['name']} → {sd['base_url']}")
+                elif existing.base_url != sd["base_url"]:
+                    existing.base_url = sd["base_url"]
+                    print(f"Updated site {sd['name']} URL to {sd['base_url']}")
             db.session.commit()
             print("Seeded active sites successfully.")
         except Exception as e:
@@ -159,7 +162,7 @@ def create_app(config_overrides=None):
 
     @app.before_request
     def check_login():
-        if request.endpoint in ("login", "login_jhs", "logout", "static") or not request.endpoint:
+        if request.endpoint in ("login", "login_jhs", "login_jhs_status", "logout", "static") or not request.endpoint:
             return
         if not session.get("jhs_username") or not session.get("jhs_password"):
             return redirect(url_for("login_jhs"))
@@ -171,122 +174,64 @@ def create_app(config_overrides=None):
     @app.route("/login-jhs", methods=["GET", "POST"])
     def login_jhs():
         error = None
-        otp_sent = False
         username = session.get("jhs_temp_username")
         password = session.get("jhs_temp_password")
         is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
         
         if request.method == "POST":
-            action = request.form.get("action", "send_otp")
+            username = (request.form.get("username") or "").strip()
+            password = (request.form.get("password") or "").strip()
             
-            if action == "send_otp":
-                username = (request.form.get("username") or "").strip()
-                password = (request.form.get("password") or "").strip()
+            if not username or not password:
+                error = "Please enter both Email and Password."
+                if is_ajax:
+                    return jsonify({"success": False, "error": error})
+            else:
+                from app.jhs_session_manager import JHSSession, jhs_active_sessions
+                session_obj = JHSSession(username, password)
                 
-                if not username or not password:
-                    error = "Please enter both Email and Password."
-                    if is_ajax:
-                        return jsonify({"success": False, "error": error})
-                else:
-                    pass
+                jhs_active_sessions[session_obj.id] = session_obj
+                session["jhs_temp_session_id"] = session_obj.id
+                session["jhs_temp_username"] = username
+                session["jhs_temp_password"] = password
+                
+                session_obj.start() # Spawns background worker thread!
+                
+                if is_ajax:
+                    return jsonify({"success": True, "session_id": session_obj.id})
+                
+        return render_template("login_jhs.html", error=error, username=username, password=password)
 
-                    # Trigger background headless Playwright JHS thread
-                    from app.jhs_session_manager import JHSSession, jhs_active_sessions
-                    session_obj = JHSSession(username, password)
-                    
-                    # Register session active state immediately so verify_otp can access it
-                    jhs_active_sessions[session_obj.id] = session_obj
-                    session["jhs_temp_session_id"] = session_obj.id
-                    session["jhs_temp_username"] = username
-                    session["jhs_temp_password"] = password
-                    
-                    session_obj.start() # Spawns background worker thread!
-                    
-                    # Wait for Playwright background worker to reach OTP stage (timeout 25s)
-                    ready = session_obj.otp_ready_event.wait(timeout=25.0)
-                    
-                    if ready and not session_obj.error:
-                        if is_ajax:
-                            return jsonify({"success": True, "otp_sent": True})
-                    else:
-                        error_msg = session_obj.error or "Connection to Jio Humsafar portal timed out. Please try again."
-                        # Clean up failed session
-                        session_obj.close()
-                        jhs_active_sessions.pop(session_obj.id, None)
-                        session.pop("jhs_temp_session_id", None)
-                        session.pop("jhs_temp_username", None)
-                        session.pop("jhs_temp_password", None)
-                        if is_ajax:
-                            return jsonify({"success": False, "error": error_msg})
+    @app.route("/login-jhs-status/<session_id>")
+    def login_jhs_status(session_id):
+        from app.jhs_session_manager import jhs_active_sessions
+        session_obj = jhs_active_sessions.get(session_id)
+        if not session_obj:
+            return jsonify({"status": "error", "error": "Login session was closed or expired."})
             
-            elif action == "verify_otp":
-                otp_code = (request.form.get("otp_code") or "").strip()
-                session_id = session.get("jhs_temp_session_id")
-                temp_user = session.get("jhs_temp_username")
-                temp_pass = session.get("jhs_temp_password")
-                
-                if not otp_code:
-                    error = "Please enter the OTP code."
-                    otp_sent = True
-                    if is_ajax:
-                        return jsonify({"success": False, "error": error})
-                else:
-                    pass
-
-                    from app.jhs_session_manager import jhs_active_sessions
-                    session_obj = jhs_active_sessions.get(session_id)
-                    
-                    if not session_obj:
-                        error = "Your Jio Humsafar credentials verification session has expired. Please try again."
-                        otp_sent = False
-                        if is_ajax:
-                            return jsonify({"success": False, "error": error, "expired": True})
-                    else:
-                        # Supply code to background loop and signal it to proceed
-                        session_obj.otp_code = otp_code
-                        session_obj.otp_input_event.set()
-                        
-                        # Wait for worker thread to submit OTP and verify success (timeout 90s)
-                        finished = session_obj.login_result_event.wait(timeout=90.0)
-                        
-                        if finished and session_obj.success:
-                            # Save validated credentials into current session context
-                            session["jhs_username"] = session_obj.username
-                            session["jhs_password"] = session_obj.password
-                            
-                            # Clean up
-                            session_obj.close()
-                            jhs_active_sessions.pop(session_id, None)
-                            session.pop("jhs_temp_session_id", None)
-                            session.pop("jhs_temp_username", None)
-                            session.pop("jhs_temp_password", None)
-                            
-                            if is_ajax:
-                                return jsonify({"success": True, "redirect": url_for("runner.dashboard")})
-                            return redirect(url_for("runner.dashboard"))
-                        else:
-                            error = session_obj.error or "Incorrect or expired OTP code, or Jio Humsafar portal request timeout."
-                            otp_sent = True
-                            
-                            # Check if the browser background thread is still alive
-                            still_alive = session_obj.is_alive
-                            
-                            if not still_alive:
-                                # Clean up if thread died
-                                session_obj.close()
-                                jhs_active_sessions.pop(session_id, None)
-                                session.pop("jhs_temp_session_id", None)
-                            
-                            if is_ajax:
-                                return jsonify({
-                                    "success": False, 
-                                    "error": error, 
-                                    "expired": not still_alive
-                                })
-                            
-
-                            
-        return render_template("login_jhs.html", error=error, otp_sent=otp_sent, username=username, password=password)
+        if session_obj.success:
+            # Save validated credentials into current session context so user is logged in
+            session["jhs_username"] = session_obj.username
+            session["jhs_password"] = session_obj.password
+            
+            # Clean up
+            session_obj.close()
+            jhs_active_sessions.pop(session_id, None)
+            session.pop("jhs_temp_session_id", None)
+            session.pop("jhs_temp_username", None)
+            session.pop("jhs_temp_password", None)
+            
+            return jsonify({"status": "success", "redirect": url_for("runner.dashboard")})
+            
+        if session_obj.error:
+            err = session_obj.error
+            session_obj.close()
+            jhs_active_sessions.pop(session_id, None)
+            session.pop("jhs_temp_session_id", None)
+            
+            return jsonify({"status": "error", "error": err})
+            
+        return jsonify({"status": "pending"})
 
     @app.route("/logout")
     def logout():

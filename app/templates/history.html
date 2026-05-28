@@ -24,7 +24,9 @@
             <select id="history-site" class="bg-surface-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-500/50">
                 <option value="">All Sites</option>
                 {% for site in sites %}
-                <option value="{{ site.name }}">{{ site.name }}</option>
+                {% if site.name == 'jhs84' %}
+                <option value="{{ site.name }}">Jio Humsafar</option>
+                {% endif %}
                 {% endfor %}
             </select>
         </div>

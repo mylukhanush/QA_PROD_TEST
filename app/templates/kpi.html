@@ -30,10 +30,10 @@
         <div class="flex items-center gap-3">
             <label for="kpi-site-select" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Target Site:</label>
             <select id="kpi-site-select" class="px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white shadow-sm">
-                <option value="jhs81">jhs81 (http://jhs81.assettl.com)</option>
-                <option value="jhs82">jhs82 (http://jhs82.assettl.com)</option>
-                <option value="jhs83">jhs83 (http://jhs83.assettl.com)</option>
-                <option value="jhs84" selected>jhs84 (http://jhs84.assettl.com)</option>
+                <option value="jhs81">jiohumsafar81 (https://jiohumsafar81.jio.com)</option>
+                <option value="jhs82">jiohumsafar82 (https://jiohumsafar82.jio.com)</option>
+                <option value="jhs83">jiohumsafar83 (https://jiohumsafar83.jio.com)</option>
+                <option value="jhs84" selected>jiohumsafar84 (https://jiohumsafar84.jio.com)</option>
             </select>
             <button id="btn-generate-kpi" onclick="generateKpiReport()" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-brand-500/10 flex items-center gap-1.5">
                 <svg id="generate-spinner" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
@@ -488,7 +488,7 @@ function loadDownloadHistory() {
                 <td class="px-5 py-3.5 font-mono text-xs text-slate-500 font-bold">${row.downloaded_at}</td>
                 <td class="px-5 py-3.5">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
-                        ${row.site_name}
+                        ${row.site_name ? row.site_name.replace('jhs', 'jiohumsafar') : ''}
                     </span>
                 </td>
                 <td class="px-5 py-3.5 text-xs text-slate-700 font-semibold max-w-xs truncate" title="${row.filename}">
@@ -567,7 +567,7 @@ function viewReport(runId) {
             return;
         }
         
-        document.getElementById('modal-view-site').textContent = data.site_name;
+        document.getElementById('modal-view-site').textContent = data.site_name ? data.site_name.replace('jhs', 'jiohumsafar') : '';
         document.getElementById('modal-view-date').textContent = data.started_at;
         document.getElementById('modal-download-btn').href = `/api/kpi/download/${runId}`;
         
