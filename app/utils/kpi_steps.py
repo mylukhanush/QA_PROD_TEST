@@ -128,7 +128,7 @@ KPI_STEPS = [
         "parameter": "Alert-Over Speed",
         "url_suffix": "/#/pages/reports-new/alerts-summary",
         "type": "report_alert",
-        "alert_filter": "Over Speed"
+        "alert_filter": "Overspeed"
     },
     {
         "category": "Reports- Alert (View report)",

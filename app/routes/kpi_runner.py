@@ -44,6 +44,21 @@ def _wait_and_capture_kpi_data(page, start_time_ref, timeout_sec=45.0, cancel_ch
         if cancel_check_fn:
             cancel_check_fn()
             
+        # Check for limit warning (like "more than 2000 lines", "maximum 2000 records", "exceeds 2000")
+        try:
+            page_text = page.evaluate("() => document.body.innerText")
+            page_text_lower = page_text.lower()
+            limit_patterns = [
+                "more than 2000", "exceeds 2000", "exceed 2000", 
+                "limit of 2000", "limit 2000", "max 2000", 
+                "maximum 2000", "2000 records", "2000 rows", "2000 lines"
+            ]
+            if any(pat in page_text_lower for pat in limit_patterns):
+                elapsed = f"{time.time() - start_time_ref:.2f}"
+                return elapsed, "2000+"
+        except Exception:
+            pass
+            
         # Check for any visible "no records" / "no data" overlay elements inside active page container
         no_data_selectors = [
             '.no-data', '.no-records', '.empty-state',
@@ -68,29 +83,28 @@ def _wait_and_capture_kpi_data(page, start_time_ref, timeout_sec=45.0, cancel_ch
             break
             
         # Try primary paginator extraction inside active page container
-        if has_paginator:
-            paginator = None
-            for prefix in containers:
-                for base_sel in ['.mat-paginator-range-label:visible', '.mat-mdc-paginator-range-label:visible']:
-                    loc = page.locator(f"{prefix}{base_sel}").first
-                    if loc.count() > 0:
-                        paginator = loc
-                        break
-                if paginator:
+        paginator = None
+        for prefix in containers:
+            for base_sel in ['.mat-paginator-range-label:visible', '.mat-mdc-paginator-range-label:visible']:
+                loc = page.locator(f"{prefix}{base_sel}").first
+                if loc.count() > 0:
+                    paginator = loc
                     break
-                    
             if paginator:
-                txt = paginator.text_content()
-                # Check if it shows "of 0"
-                if re.search(r"of\s+0\b", txt, re.IGNORECASE):
-                    rec_val = 0
+                break
+                
+        if paginator:
+            txt = paginator.text_content()
+            # Check if it shows "of 0"
+            if re.search(r"of\s+0\b", txt, re.IGNORECASE):
+                rec_val = 0
+                break
+            m = re.search(r"of\s+([\d,]+)", txt, re.IGNORECASE)
+            if m:
+                val = int(m.group(1).replace(',', ''))
+                if val > 0:
+                    rec_val = val
                     break
-                m = re.search(r"of\s+([\d,]+)", txt, re.IGNORECASE)
-                if m:
-                    val = int(m.group(1).replace(',', ''))
-                    if val > 0:
-                        rec_val = val
-                        break
                         
         # Multi-layer fallback page scanning for any visible text representing total count inside active container
         scanned_val = None
@@ -458,7 +472,22 @@ def _kpi_runner_worker(app, site_id, run_id, jhs_credentials=None):
                         # Extract the count in a robust wait loop to prevent race conditions on SPA rendering
                         rec_val = 0
                         start_wait = time.time()
-                        while time.time() - start_wait < 15.0:
+                        while time.time() - start_wait < 25.0:
+                            # Check for limit warning (like "more than 2000 lines", "maximum 2000 records", "exceeds 2000")
+                            try:
+                                page_text = page.evaluate("() => document.body.innerText")
+                                page_text_lower = page_text.lower()
+                                limit_patterns = [
+                                    "more than 2000", "exceeds 2000", "exceed 2000", 
+                                    "limit of 2000", "limit 2000", "max 2000", 
+                                    "maximum 2000", "2000 records", "2000 rows", "2000 lines"
+                                ]
+                                if any(pat in page_text_lower for pat in limit_patterns):
+                                    rec_val = "2000+"
+                                    break
+                            except Exception:
+                                pass
+                                
                             # 1. Try to extract from "Total count:" text
                             total_count_sel = f"{actual_container} >> text=Total count:"
                             tc_loc = page.locator(total_count_sel).first
@@ -476,7 +505,7 @@ def _kpi_runner_worker(app, site_id, run_id, jhs_credentials=None):
                                     elif val == 0 and cards_loc.count() == 0:
                                         # Genuine 0 count
                                         rec_val = 0
-                                        if time.time() - start_wait > 2.0:
+                                        if time.time() - start_wait > 12.0:
                                             break
                                             
                             # 2. Check for explicit empty state selectors
@@ -489,14 +518,14 @@ def _kpi_runner_worker(app, site_id, run_id, jhs_credentials=None):
                                     
                             if no_data_visible:
                                 rec_val = 0
-                                if time.time() - start_wait > 2.0:
+                                if time.time() - start_wait > 12.0:
                                     break
                                     
                             # 3. Fallback: count card cards
                             rows_loc = page.locator(f"{actual_container} .ongoing_card:visible, {actual_container} [class*='card']:visible")
                             if rows_loc.count() > 0:
                                 rec_val = rows_loc.count()
-                                if rec_val > 0 and time.time() - start_wait > 3.0:
+                                if rec_val > 0 and time.time() - start_wait > 12.0:
                                     break
                                     
                             page.wait_for_timeout(500)
@@ -598,9 +627,21 @@ def _kpi_runner_worker(app, site_id, run_id, jhs_credentials=None):
                                         if lbl.is_visible():
                                             lbl_text = lbl.text_content().strip()
                                             should_check = False
-                                            if alert_filter == "Geofence":
+                                            param_name = step["parameter"]
+                                            param_name_lower = param_name.lower()
+                                            if "geofence" in param_name_lower:
                                                 normalized_lbl = lbl_text.lower().replace('-', ' ').replace('_', ' ')
                                                 if "geofence entry" in normalized_lbl or "geofence exit" in normalized_lbl:
+                                                    should_check = True
+                                            elif "ignat" in param_name_lower or "ignit" in param_name_lower:
+                                                if "ignition status" in lbl_text.strip().lower():
+                                                    should_check = True
+                                            elif "speed" in param_name_lower:
+                                                normalized_lbl = lbl_text.strip().lower().replace(' ', '')
+                                                if normalized_lbl in ("overspeed", "overspeeding"):
+                                                    should_check = True
+                                            elif "power" in param_name_lower:
+                                                if "power status" in lbl_text.strip().lower():
                                                     should_check = True
                                             else:
                                                 if alert_filter.lower() in lbl_text.lower():
