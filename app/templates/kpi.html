@@ -30,10 +30,7 @@
         <div class="flex items-center gap-3">
             <label for="kpi-site-select" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Target Site:</label>
             <select id="kpi-site-select" class="px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white shadow-sm">
-                <option value="jhs81">jiohumsafar81 (https://jiohumsafar81.jio.com)</option>
-                <option value="jhs82">jiohumsafar82 (https://jiohumsafar82.jio.com)</option>
-                <option value="jhs83">jiohumsafar83 (https://jiohumsafar83.jio.com)</option>
-                <option value="jhs84" selected>jiohumsafar84 (https://jiohumsafar84.jio.com)</option>
+                <option value="jhs84" selected>jiohumsafar (https://jiohumsafar.jio.com/)</option>
             </select>
             <button id="btn-generate-kpi" onclick="generateKpiReport()" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-brand-500/10 flex items-center gap-1.5">
                 <svg id="generate-spinner" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
@@ -265,8 +262,234 @@
     </div>
 </div>
 
-<!-- Download Status Content (Empty) -->
-<div id="content-download-status" class="hidden min-h-[300px]"></div>
+<!-- Download Status Content -->
+<div id="content-download-status" class="hidden fade-in">
+    <!-- KPI Download Report Controls -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <label for="download-kpi-site-select" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Target Site:</label>
+            <select id="download-kpi-site-select" class="px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white shadow-sm">
+                <option value="jhs84" selected>jiohumsafar (https://jiohumsafar.jio.com/)</option>
+            </select>
+            <button id="btn-generate-download-kpi" onclick="generateDownloadKpiReport()" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-brand-500/10 flex items-center gap-1.5">
+                <svg id="generate-download-spinner" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Generate Download KPI Report</span>
+            </button>
+        </div>
+        <div>
+            <a id="btn-download-kpi-excel" href="#" class="px-5 py-2 border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed pointer-events-none text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download Excel Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Active Download Generating Progress Overlay/Card -->
+    <div id="download-kpi-progress-card" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-6 hidden">
+        <div class="flex justify-between items-center mb-3">
+            <div class="flex items-center gap-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse"></span>
+                <span id="download-kpi-status-text" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Generating Report...</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="download-kpi-percentage-text" class="text-xs font-bold text-brand-600">0%</span>
+                <button id="btn-cancel-download-kpi" onclick="cancelDownloadKpiReport()" class="px-2.5 py-1 text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-all flex items-center gap-1 shadow-sm">
+                    <svg class="w-3 h-3 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Cancel
+                </button>
+            </div>
+        </div>
+        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden shadow-inner">
+            <div id="download-kpi-progress-bar" class="bg-brand-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">
+            Playwright is executing sequential page downloads to measure loading times and records. This may take around 2-3 minutes.
+        </p>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden p-6 mb-8">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse border border-slate-200 rounded-xl overflow-hidden">
+                <thead>
+                    <!-- Main Header Row -->
+                    <tr class="bg-[#3B4252] text-white">
+                        <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[20%]">Category</th>
+                        <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[35%]">Parameter</th>
+                        <th class="border border-[#115e59] bg-[#115e59] px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[15%]">Loading Time (Sec)</th>
+                        <th class="border border-[#115e59] bg-[#115e59] px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[15%]">Number of Records</th>
+                        <th class="border border-[#115e59] bg-[#115e59] px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[15%]">Expected KPI (Sec)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Mointor > Command Centre</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Download List view Page vehicle Data</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Download List view Page vehicle Data" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Download List view Page vehicle Data" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Download List view Page vehicle Data" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-white">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td rowspan="2" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Mointor -> Video - Download</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Video Alerts(Downlaod)</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Video Alerts(Downlaod)" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Video Alerts(Downlaod)" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Video Alerts(Downlaod)" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-slate-50">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Camers Status(Download)</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Camers Status(Download)" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Camers Status(Download)" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Camers Status(Download)" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-white">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td rowspan="4" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Trips > Multipoint Cargo Trip</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Download All Ongoing Trips</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Download All Ongoing Trips" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Download All Ongoing Trips" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Download All Ongoing Trips" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-slate-50">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Download Upcoming Trips</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Download Upcoming Trips" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Download Upcoming Trips" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Download Upcoming Trips" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-white">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Download Completed/Canceled Trips</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Download Completed/Canceled Trips" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Download Completed/Canceled Trips" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Download Completed/Canceled Trips" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-slate-50">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Download Trip Summary Page - PDF Report</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Download Trip Summary Page - PDF Report" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Download Trip Summary Page - PDF Report" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Download Trip Summary Page - PDF Report" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-white">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td rowspan="4" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Reports- Alerts(Generate report)</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Alert- Geofence Entry Exit</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Alert- Geofence Entry Exit" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Alert- Geofence Entry Exit" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Alert- Geofence Entry Exit" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-slate-50">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Alert- IGN</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Alert- IGN" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Alert- IGN" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Alert- IGN" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-white">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Alert- Over Speed</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Alert- Over Speed" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Alert- Over Speed" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Alert- Over Speed" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-slate-50">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Alert- Power Status</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Alert- Power Status" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Alert- Power Status" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Alert- Power Status" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-white">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td rowspan="8" class="border border-slate-300 bg-[#B0C4DE] text-slate-800 font-bold text-xs uppercase text-center px-4 py-3.5">Other Reports (Generate Report)</td>
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Distance</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Distance" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Distance" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Distance" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-slate-50">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">IGN Master</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="IGN Master" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="IGN Master" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="IGN Master" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-white">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">IGN Analytics</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="IGN Analytics" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="IGN Analytics" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="IGN Analytics" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-slate-50">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Geofence</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Geofence" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Geofence" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Geofence" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-white">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Vehicle</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Vehicle" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Vehicle" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Vehicle" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-slate-50">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">Over Speeding</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Over Speeding" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Over Speeding" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="Over Speeding" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-white">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-slate-50">Vehicle History</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="Vehicle History" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Vehicle History" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-slate-50">-</td>
+                        <td data-download-param="Vehicle History" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-slate-50">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr><tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 bg-white">IGN Trips</td>
+                        <!-- 7 Days -->
+                        <td data-download-param="IGN Trips" data-days="7" data-metric="loading" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="IGN Trips" data-days="7" data-metric="records" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-900 bg-white">-</td>
+                        <td data-download-param="IGN Trips" data-days="7" data-metric="expected" class="border border-slate-300 px-2 py-3.5 text-center font-mono font-bold text-slate-500 bg-white">-</td>
+                        <!-- 15 Days -->
+                        <!-- 30 Days -->
+                    </tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 <!-- Download History Content -->
 <div id="content-download-history" class="hidden">
@@ -349,7 +572,7 @@
         <!-- Modal Table Body -->
         <div class="flex-1 overflow-y-auto pr-1">
             <table class="w-full text-xs border-collapse border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                <thead>
+                <thead id="modal-kpi-thead">
                     <tr class="bg-[#3B4252] text-white">
                         <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[25%]">Category</th>
                         <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[45%]">Parameter</th>
@@ -382,6 +605,19 @@
 
 {% block scripts %}
 <script>
+function getTimerColorClass(valStr) {
+    const val = parseFloat(valStr);
+    if (isNaN(val)) return 'text-slate-900';
+    if (val < 5.0) return 'text-emerald-600';
+    if (val < 10.0) return 'text-amber-500';
+    return 'text-rose-600';
+}
+
+function applyTimerColorClass(cell, valStr) {
+    cell.classList.remove('text-slate-900', 'text-slate-500', 'text-emerald-600', 'text-amber-500', 'text-rose-600');
+    cell.classList.add(getTimerColorClass(valStr));
+}
+
 function switchTab(tabId) {
     const tabKpi = document.getElementById('tab-performance-kpi');
     const tabDownload = document.getElementById('tab-download-status');
@@ -535,10 +771,11 @@ function viewReport(runId) {
     const modal = document.getElementById('view-kpi-modal');
     const container = document.getElementById('view-kpi-modal-container');
     const tbody = document.getElementById('modal-kpi-tbody');
+    const thead = document.getElementById('modal-kpi-thead');
     
     tbody.innerHTML = `
         <tr>
-            <td colspan="4" class="py-8 text-center text-slate-400">
+            <td colspan="5" class="py-8 text-center text-slate-400">
                 <div class="flex items-center justify-center gap-2">
                     <svg class="w-4 h-4 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -570,6 +807,28 @@ function viewReport(runId) {
         document.getElementById('modal-view-site').textContent = data.site_name ? data.site_name.replace('jhs', 'jiohumsafar') : '';
         document.getElementById('modal-view-date').textContent = data.started_at;
         document.getElementById('modal-download-btn').href = `/api/kpi/download/${runId}`;
+        
+        // Dynamically render headers
+        if (data.is_download) {
+            thead.innerHTML = `
+                <tr class="bg-[#3B4252] text-white">
+                    <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[20%]">Category</th>
+                    <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[35%]">Parameter</th>
+                    <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[15%]">Loading Time (Sec)</th>
+                    <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[15%]">Number of Records</th>
+                    <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[15%]">Expected KPI (Sec)</th>
+                </tr>
+            `;
+        } else {
+            thead.innerHTML = `
+                <tr class="bg-[#3B4252] text-white">
+                    <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[25%]">Category</th>
+                    <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[45%]">Parameter</th>
+                    <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[15%]">Loading Time (Sec)</th>
+                    <th class="border border-slate-300 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[15%]">Number of Records</th>
+                </tr>
+            `;
+        }
         
         tbody.innerHTML = '';
         
@@ -608,22 +867,34 @@ function viewReport(runId) {
             } else if (displayRc === "0" || displayRc === 0) {
                 displayRc = "No Data";
             }
+
+            let displayEk = row.expected_kpi;
+            if (displayEk === "" || displayEk === null || displayEk === undefined || displayEk === "None" || displayEk === "-") {
+                displayEk = "-";
+            }
             
             const isAltRow = trackingCounts[cat] % 2 === 0;
             const rowBg = isAltRow ? 'bg-slate-50' : 'bg-white';
             
-            tr.innerHTML = `
+            const ltColorClass = getTimerColorClass(displayLt);
+            const ekColorClass = getTimerColorClass(displayEk);
+            
+            let cellsHtml = `
                 ${catTd}
                 <td class="border border-slate-300 px-4 py-3.5 text-center font-semibold text-slate-700 ${rowBg}">${row.parameter}</td>
-                <td class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 ${rowBg}">${displayLt}</td>
+                <td class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold ${ltColorClass} ${rowBg}">${displayLt}</td>
                 <td class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold text-slate-900 ${rowBg}">${displayRc}</td>
             `;
+            if (data.is_download) {
+                cellsHtml += `<td class="border border-slate-300 px-4 py-3.5 text-center font-mono font-bold ${ekColorClass} ${rowBg}">${displayEk}</td>`;
+            }
+            tr.innerHTML = cellsHtml;
             tbody.appendChild(tr);
         });
     })
     .catch(err => {
         console.error('Fetch detail error:', err);
-        tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-rose-500 font-semibold">An error occurred while fetching details.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-rose-500 font-semibold">An error occurred while fetching details.</td></tr>`;
     });
 }
 
@@ -644,6 +915,7 @@ function closeViewKpiModal() {
 
 
 let pollIntervalId = null;
+let downloadKpiIntervalId = null;
 
 function generateKpiReport() {
     const siteSelect = document.getElementById('kpi-site-select');
@@ -659,7 +931,8 @@ function generateKpiReport() {
     // Reset table cells
     document.querySelectorAll('[data-param]').forEach(cell => {
         cell.textContent = '-';
-        cell.classList.remove('text-emerald-600');
+        cell.classList.remove('text-slate-900', 'text-slate-500', 'text-emerald-600', 'text-amber-500', 'text-rose-600');
+        cell.classList.add('text-slate-900');
     });
     
     // Disable inputs
@@ -742,8 +1015,11 @@ function startPolling(runId) {
                         }
                         if (cell.textContent !== displayVal) {
                             cell.textContent = displayVal;
-                            if (!cell.classList.contains('text-emerald-600')) {
-                                cell.classList.add('text-emerald-600');
+                            if (metricType === "loading") {
+                                applyTimerColorClass(cell, displayVal);
+                            } else {
+                                cell.classList.remove('text-slate-900', 'text-slate-500', 'text-emerald-600', 'text-amber-500', 'text-rose-600');
+                                cell.classList.add('text-slate-900');
                             }
                         }
                     }
@@ -868,6 +1144,256 @@ function resetUiState() {
     }
 }
 
+function generateDownloadKpiReport() {
+    const siteSelect = document.getElementById('download-kpi-site-select');
+    const siteName = siteSelect ? siteSelect.value : 'jhs84';
+    const generateBtn = document.getElementById('btn-generate-download-kpi');
+    const spinner = document.getElementById('generate-download-spinner');
+    const progressCard = document.getElementById('download-kpi-progress-card');
+    const progressBar = document.getElementById('download-kpi-progress-bar');
+    const percentageText = document.getElementById('download-kpi-percentage-text');
+    const statusText = document.getElementById('download-kpi-status-text');
+    const downloadBtn = document.getElementById('btn-download-kpi-excel');
+
+    // 1. Reset all download cells in the table
+    document.querySelectorAll('[data-download-param]').forEach(cell => {
+        cell.textContent = '-';
+        cell.classList.remove('text-slate-900', 'text-slate-500', 'text-emerald-600', 'text-amber-500', 'text-rose-600');
+        cell.classList.add('text-slate-900');
+    });
+
+    // 2. Disable inputs
+    if (siteSelect) siteSelect.disabled = true;
+    if (generateBtn) {
+        generateBtn.disabled = true;
+        generateBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    }
+    if (spinner) spinner.classList.remove('hidden');
+
+    // 3. Reset and show progress card
+    if (progressCard) progressCard.classList.remove('hidden');
+    if (progressBar) progressBar.style.width = '0%';
+    if (percentageText) percentageText.textContent = '0%';
+    if (statusText) statusText.textContent = 'Initializing Download KPI Run...';
+
+    // Reset download excel button style/attributes
+    if (downloadBtn) {
+        downloadBtn.removeAttribute('href');
+        downloadBtn.className = "px-5 py-2 border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed pointer-events-none text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm";
+        downloadBtn.onclick = null;
+    }
+
+    fetch('/api/kpi/download-sheet/run', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ site_name: siteName })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error starting download report: ' + data.error);
+            resetDownloadUiState();
+            return;
+        }
+        const runId = data.run_id;
+        localStorage.setItem('active_download_kpi_run_id', runId);
+        startDownloadKpiPolling(runId);
+    })
+    .catch(err => {
+        console.error('Error starting download report:', err);
+        alert('Failed to trigger download report generation.');
+        resetDownloadUiState();
+    });
+}
+
+function startDownloadKpiPolling(runId) {
+    if (downloadKpiIntervalId) {
+        clearInterval(downloadKpiIntervalId);
+    }
+    
+    downloadKpiIntervalId = setInterval(() => {
+        fetch(`/api/kpi/download-sheet/progress/${runId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Download Progress error:', data.error);
+                clearInterval(downloadKpiIntervalId);
+                resetDownloadUiState();
+                return;
+            }
+            
+            // Update table cells from the captured metrics
+            const metrics = data.metrics || {};
+            for (const [key, val] of Object.entries(metrics)) {
+                let param = "";
+                let metricType = "";
+                if (key.endsWith(" - Loading Time")) {
+                    param = key.substring(0, key.length - " - Loading Time".length);
+                    metricType = "loading";
+                } else if (key.endsWith(" - Number of Records")) {
+                    param = key.substring(0, key.length - " - Number of Records".length);
+                    metricType = "records";
+                } else if (key.endsWith(" - Expected KPI")) {
+                    param = key.substring(0, key.length - " - Expected KPI".length);
+                    metricType = "expected";
+                }
+                
+                if (param && metricType) {
+                    const cell = document.querySelector(`[data-download-param="${param}"][data-metric="${metricType}"]`);
+                    if (cell) {
+                        let displayVal = val;
+                        if (displayVal === "" || displayVal === null || displayVal === undefined || displayVal === "None" || displayVal === "N/A" || displayVal === "-") {
+                            displayVal = "-";
+                        } else if (metricType === "records" && (displayVal === "0" || displayVal === 0)) {
+                            displayVal = "No Data";
+                        }
+                        if (cell.textContent !== displayVal) {
+                            cell.textContent = displayVal;
+                            if (metricType === "loading" || metricType === "expected") {
+                                applyTimerColorClass(cell, displayVal);
+                            } else {
+                                cell.classList.remove('text-slate-900', 'text-slate-500', 'text-emerald-600', 'text-amber-500', 'text-rose-600');
+                                cell.classList.add('text-slate-900');
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Update progress bar
+            const completed = data.completed_steps || 0;
+            const total = data.total_steps || 19;
+            const percentage = Math.round((completed / total) * 100);
+            
+            const progressBar = document.getElementById('download-kpi-progress-bar');
+            const percentageText = document.getElementById('download-kpi-percentage-text');
+            const statusText = document.getElementById('download-kpi-status-text');
+            
+            if (progressBar) progressBar.style.width = `${percentage}%`;
+            if (percentageText) percentageText.textContent = `${percentage}%`;
+            if (statusText) {
+                statusText.textContent = `Generating Download KPI Report... (${completed}/${total} parameters finished)`;
+            }
+            
+            if (data.status === 'completed' || data.status === 'pass' || data.status === 'fail' || data.status === 'error' || data.status === 'cancelled') {
+                clearInterval(downloadKpiIntervalId);
+                downloadKpiIntervalId = null;
+                localStorage.removeItem('active_download_kpi_run_id');
+                
+                if (data.status === 'cancelled') {
+                    if (statusText) statusText.textContent = 'Download report generation cancelled.';
+                    setTimeout(() => {
+                        const progressCard = document.getElementById('download-kpi-progress-card');
+                        if (progressCard) progressCard.classList.add('hidden');
+                    }, 3000);
+                } else if (data.status === 'error') {
+                    if (statusText) statusText.textContent = 'Download report generation failed.';
+                    alert('Playwright worker encountered a fatal error during download KPIs.');
+                } else {
+                    if (statusText) statusText.textContent = 'Download report generated successfully!';
+                    
+                    // Enable download excel report button
+                    const downloadBtn = document.getElementById('btn-download-kpi-excel');
+                    if (downloadBtn) {
+                        downloadBtn.href = `/api/kpi/download-sheet/download/${runId}`;
+                        downloadBtn.className = "px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/10 flex items-center gap-1.5";
+                        downloadBtn.onclick = null;
+                    }
+                }
+                
+                resetDownloadUiState();
+            }
+        })
+        .catch(err => {
+            console.error('Download Polling fetch failed:', err);
+        });
+    }, 1500);
+}
+
+function cancelDownloadKpiReport() {
+    const runId = localStorage.getItem('active_download_kpi_run_id');
+    if (!runId) return;
+    
+    if (!confirm("Are you sure you want to cancel the active download KPI report generation?")) {
+        return;
+    }
+    
+    const cancelBtn = document.getElementById('btn-cancel-download-kpi');
+    if (cancelBtn) {
+        cancelBtn.disabled = true;
+        cancelBtn.textContent = 'Cancelling...';
+        cancelBtn.className = "px-2.5 py-1 text-[10px] font-bold text-slate-400 bg-slate-50 rounded-lg border border-slate-200 cursor-not-allowed pointer-events-none";
+    }
+    
+    fetch(`/api/kpi/download-sheet/cancel/${runId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            clearInterval(downloadKpiIntervalId);
+            downloadKpiIntervalId = null;
+            localStorage.removeItem('active_download_kpi_run_id');
+            
+            const statusText = document.getElementById('download-kpi-status-text');
+            if (statusText) statusText.textContent = 'Download report generation cancelled by user.';
+            
+            setTimeout(() => {
+                const progressCard = document.getElementById('download-kpi-progress-card');
+                if (progressCard) progressCard.classList.add('hidden');
+                resetDownloadUiState();
+            }, 3000);
+        } else {
+            alert('Failed to cancel download report.');
+            if (cancelBtn) {
+                cancelBtn.disabled = false;
+                cancelBtn.innerHTML = `
+                    <svg class="w-3 h-3 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Cancel
+                `;
+                cancelBtn.className = "px-2.5 py-1 text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-all flex items-center gap-1 shadow-sm";
+            }
+        }
+    })
+    .catch(err => {
+        console.error('Cancel error:', err);
+        alert('An error occurred while attempting to cancel.');
+        if (cancelBtn) {
+            cancelBtn.disabled = false;
+            cancelBtn.textContent = 'Cancel';
+        }
+    });
+}
+
+function resetDownloadUiState() {
+    const siteSelect = document.getElementById('download-kpi-site-select');
+    const generateBtn = document.getElementById('btn-generate-download-kpi');
+    const spinner = document.getElementById('generate-download-spinner');
+    
+    if (siteSelect) siteSelect.disabled = false;
+    if (generateBtn) {
+        generateBtn.disabled = false;
+        generateBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
+    if (spinner) spinner.classList.add('hidden');
+    
+    const cancelBtn = document.getElementById('btn-cancel-download-kpi');
+    if (cancelBtn) {
+        cancelBtn.disabled = false;
+        cancelBtn.innerHTML = `
+            <svg class="w-3 h-3 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cancel
+        `;
+        cancelBtn.className = "px-2.5 py-1 text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-all flex items-center gap-1 shadow-sm";
+    }
+}
+
 // On page load, check if there is an active run in progress or restore state
 document.addEventListener("DOMContentLoaded", () => {
     // Check URL parameters for tab routing and date filtering
@@ -896,6 +1422,24 @@ document.addEventListener("DOMContentLoaded", () => {
         progressCard.classList.remove('hidden');
         
         startPolling(activeRunId);
+    }
+
+    const activeDownloadRunId = localStorage.getItem('active_download_kpi_run_id');
+    if (activeDownloadRunId) {
+        const siteSelect = document.getElementById('download-kpi-site-select');
+        const generateBtn = document.getElementById('btn-generate-download-kpi');
+        const spinner = document.getElementById('generate-download-spinner');
+        const progressCard = document.getElementById('download-kpi-progress-card');
+        
+        if (siteSelect) siteSelect.disabled = true;
+        if (generateBtn) {
+            generateBtn.disabled = true;
+            generateBtn.classList.add('opacity-75', 'cursor-not-allowed');
+        }
+        if (spinner) spinner.classList.remove('hidden');
+        if (progressCard) progressCard.classList.remove('hidden');
+        
+        startDownloadKpiPolling(activeDownloadRunId);
     }
 });
 </script>
